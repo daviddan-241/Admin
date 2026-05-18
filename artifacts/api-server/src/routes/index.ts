@@ -8,6 +8,8 @@ import statsRouter from "./stats";
 import postsRouter from "./posts";
 import eventsRouter from "./events";
 import adminRouter from "./admin";
+import chatRouter from "./chat";
+import socialRouter from "./social";
 
 const router: IRouter = Router();
 
@@ -20,5 +22,7 @@ router.use(requestsRouter);
 router.use(tipsRouter);
 router.use(statsRouter);
 router.use(postsRouter);
+router.use(chatRouter);
+router.use(socialRouter);
 
 export default router;
