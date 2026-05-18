@@ -6,6 +6,7 @@ import {
   UpdateCallParams,
   UpdateCallBody,
 } from "@workspace/api-zod";
+import { activityEmitter } from "../emitter";
 
 const router: IRouter = Router();
 
@@ -34,6 +35,15 @@ router.post("/calls", async (req, res): Promise<void> => {
     notes: parsed.data.notes ?? null,
     status: "pending",
   }).returning();
+
+  activityEmitter.emit("activity", {
+    type: "call",
+    fanName: parsed.data.fanName,
+    amount: parsed.data.amountPaid,
+    detail: `Call booked: ${parsed.data.durationMinutes} min with ${parsed.data.fanName}`,
+    timestamp: new Date().toISOString(),
+  });
+
   res.status(201).json({ ...row, amountPaid: Number(row.amountPaid), createdAt: row.createdAt.toISOString() });
 });
 

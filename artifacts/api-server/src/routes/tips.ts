@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { desc } from "drizzle-orm";
 import { db, tipsTable } from "@workspace/db";
 import { CreateTipBody } from "@workspace/api-zod";
+import { activityEmitter } from "../emitter";
 
 const router: IRouter = Router();
 
@@ -27,6 +28,15 @@ router.post("/tips", async (req, res): Promise<void> => {
     txRef: parsed.data.txRef,
     message: parsed.data.message ?? null,
   }).returning();
+
+  activityEmitter.emit("activity", {
+    type: "tip",
+    fanName: parsed.data.fanName,
+    amount: parsed.data.amount,
+    detail: `Tip of $${parsed.data.amount} from ${parsed.data.fanName}`,
+    timestamp: new Date().toISOString(),
+  });
+
   res.status(201).json({ ...row, amount: Number(row.amount), createdAt: row.createdAt.toISOString() });
 });
 

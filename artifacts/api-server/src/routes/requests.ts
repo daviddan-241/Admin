@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { desc } from "drizzle-orm";
 import { db, requestsTable } from "@workspace/db";
 import { CreateRequestBody } from "@workspace/api-zod";
+import { activityEmitter } from "../emitter";
 
 const router: IRouter = Router();
 
@@ -29,6 +30,15 @@ router.post("/requests", async (req, res): Promise<void> => {
     txRef: parsed.data.txRef,
     status: "pending",
   }).returning();
+
+  activityEmitter.emit("activity", {
+    type: "request",
+    fanName: parsed.data.fanName,
+    amount: parsed.data.amountPaid,
+    detail: `Custom request from ${parsed.data.fanName}: ${parsed.data.requestType}`,
+    timestamp: new Date().toISOString(),
+  });
+
   res.status(201).json({ ...row, amountPaid: Number(row.amountPaid), createdAt: row.createdAt.toISOString() });
 });
 

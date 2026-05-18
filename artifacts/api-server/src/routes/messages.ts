@@ -8,6 +8,7 @@ import {
   UpdateMessageParams,
   UpdateMessageBody,
 } from "@workspace/api-zod";
+import { activityEmitter } from "../emitter";
 
 const router: IRouter = Router();
 
@@ -36,8 +37,19 @@ router.post("/messages", async (req, res): Promise<void> => {
     message: parsed.data.message,
     amountPaid: String(parsed.data.amountPaid),
     txRef: parsed.data.txRef,
-    status: "paid",
+    status: parsed.data.amountPaid === 0 ? "free" : "paid",
   }).returning();
+
+  if (parsed.data.amountPaid > 0) {
+    activityEmitter.emit("activity", {
+      type: "message",
+      fanName: parsed.data.fanName,
+      amount: parsed.data.amountPaid,
+      detail: `New paid message from ${parsed.data.fanName}`,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   res.status(201).json({ ...row, amountPaid: Number(row.amountPaid), createdAt: row.createdAt.toISOString() });
 });
 
@@ -66,7 +78,11 @@ router.patch("/messages/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [row] = await db.update(messagesTable).set(parsed.data).where(eq(messagesTable.id, params.data.id)).returning();
+  const updateData: Record<string, unknown> = { ...parsed.data };
+  if (parsed.data.reply !== undefined) {
+    updateData.status = "replied";
+  }
+  const [row] = await db.update(messagesTable).set(updateData).where(eq(messagesTable.id, params.data.id)).returning();
   if (!row) {
     res.status(404).json({ error: "Message not found" });
     return;

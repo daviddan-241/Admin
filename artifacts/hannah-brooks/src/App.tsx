@@ -9,6 +9,8 @@ import Members from "@/pages/members";
 import Messages from "@/pages/messages";
 import Calls from "@/pages/calls";
 import Store from "@/pages/store";
+import Feed from "@/pages/feed";
+import Admin from "@/pages/admin";
 
 const queryClient = new QueryClient();
 
@@ -20,13 +22,14 @@ function Router() {
       <Route path="/messages" component={Messages} />
       <Route path="/calls" component={Calls} />
       <Route path="/store" component={Store} />
+      <Route path="/feed" component={Feed} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
 function App() {
-  // Force dark mode on the document element for the dark luxury theme
   useEffect(() => {
     document.documentElement.classList.add("dark");
   }, []);

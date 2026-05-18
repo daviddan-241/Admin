@@ -5,14 +5,20 @@ import callsRouter from "./calls";
 import requestsRouter from "./requests";
 import tipsRouter from "./tips";
 import statsRouter from "./stats";
+import postsRouter from "./posts";
+import eventsRouter from "./events";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
+router.use(adminRouter);
+router.use(eventsRouter);
 router.use(healthRouter);
 router.use(messagesRouter);
 router.use(callsRouter);
 router.use(requestsRouter);
 router.use(tipsRouter);
 router.use(statsRouter);
+router.use(postsRouter);
 
 export default router;
