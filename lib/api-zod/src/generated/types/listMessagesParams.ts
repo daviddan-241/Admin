@@ -5,7 +5,8 @@
  * Hannah Brooks Fan Site API
  * OpenAPI spec version: 0.1.0
  */
+import type { ListMessagesStatus } from './listMessagesStatus';
 
-export interface HealthStatus {
-  status: string;
-}
+export type ListMessagesParams = {
+status?: ListMessagesStatus;
+};

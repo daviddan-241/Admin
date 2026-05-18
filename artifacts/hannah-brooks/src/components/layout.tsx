@@ -13,6 +13,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               Home
             </Link>
+            <Link href="/store" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              Boutique
+            </Link>
+            <Link href="/messages" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              Messages
+            </Link>
+            <Link href="/calls" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              Video Calls
+            </Link>
             <Link href="/members" className="text-sm font-medium text-secondary hover:text-white transition-colors">
               VIP Members
             </Link>

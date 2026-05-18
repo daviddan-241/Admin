@@ -1,22 +1,28 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Hannah Brooks Fan Site API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: messages
+    description: Paid fan messages
+  - name: calls
+    description: Paid video call bookings
+  - name: requests
+    description: Paid custom content requests
+  - name: tips
+    description: Fan tips and gifts
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +30,224 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /messages:
+    get:
+      operationId: listMessages
+      tags: [messages]
+      summary: List all paid messages (admin)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, paid, replied]
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: createMessage
+      tags: [messages]
+      summary: Submit a paid fan message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageInput"
+      responses:
+        "201":
+          description: Message created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  /messages/{id}:
+    get:
+      operationId: getMessage
+      tags: [messages]
+      summary: Get a specific message
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateMessage
+      tags: [messages]
+      summary: Update message (mark paid, add reply)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageUpdate"
+      responses:
+        "200":
+          description: Updated message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  /calls:
+    get:
+      operationId: listCalls
+      tags: [calls]
+      summary: List all video call bookings (admin)
+      responses:
+        "200":
+          description: List of call bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CallBooking"
+    post:
+      operationId: createCall
+      tags: [calls]
+      summary: Book a paid video call
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallBookingInput"
+      responses:
+        "201":
+          description: Call booking created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallBooking"
+
+  /calls/{id}:
+    patch:
+      operationId: updateCall
+      tags: [calls]
+      summary: Update call booking status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallBookingUpdate"
+      responses:
+        "200":
+          description: Updated booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallBooking"
+
+  /requests:
+    get:
+      operationId: listRequests
+      tags: [requests]
+      summary: List all content requests (admin)
+      responses:
+        "200":
+          description: List of requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentRequest"
+    post:
+      operationId: createRequest
+      tags: [requests]
+      summary: Submit a paid custom content request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentRequestInput"
+      responses:
+        "201":
+          description: Request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentRequest"
+
+  /tips:
+    get:
+      operationId: listTips
+      tags: [tips]
+      summary: List all tips (admin)
+      responses:
+        "200":
+          description: List of tips
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tip"
+    post:
+      operationId: createTip
+      tags: [tips]
+      summary: Send a tip / gift
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TipInput"
+      responses:
+        "201":
+          description: Tip recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tip"
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [messages]
+      summary: Get fan engagement stats summary
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +255,191 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    Message:
+      type: object
+      required: [id, fanEmail, fanName, message, amountPaid, txRef, status, createdAt]
+      properties:
+        id:
+          type: integer
+        fanEmail:
+          type: string
+        fanName:
+          type: string
+        message:
+          type: string
+        amountPaid:
+          type: number
+        txRef:
+          type: string
+        status:
+          type: string
+        reply:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    MessageInput:
+      type: object
+      required: [fanEmail, fanName, message, amountPaid, txRef]
+      properties:
+        fanEmail:
+          type: string
+        fanName:
+          type: string
+        message:
+          type: string
+        amountPaid:
+          type: number
+        txRef:
+          type: string
+
+    MessageUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+        reply:
+          type: string
+
+    CallBooking:
+      type: object
+      required: [id, fanEmail, fanName, preferredDate, durationMinutes, amountPaid, txRef, status, notes, createdAt]
+      properties:
+        id:
+          type: integer
+        fanEmail:
+          type: string
+        fanName:
+          type: string
+        preferredDate:
+          type: string
+        durationMinutes:
+          type: integer
+        amountPaid:
+          type: number
+        txRef:
+          type: string
+        status:
+          type: string
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    CallBookingInput:
+      type: object
+      required: [fanEmail, fanName, preferredDate, durationMinutes, amountPaid, txRef]
+      properties:
+        fanEmail:
+          type: string
+        fanName:
+          type: string
+        preferredDate:
+          type: string
+        durationMinutes:
+          type: integer
+        amountPaid:
+          type: number
+        txRef:
+          type: string
+        notes:
+          type: string
+
+    CallBookingUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+        notes:
+          type: string
+
+    ContentRequest:
+      type: object
+      required: [id, fanEmail, fanName, requestType, description, amountPaid, txRef, status, createdAt]
+      properties:
+        id:
+          type: integer
+        fanEmail:
+          type: string
+        fanName:
+          type: string
+        requestType:
+          type: string
+        description:
+          type: string
+        amountPaid:
+          type: number
+        txRef:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+
+    ContentRequestInput:
+      type: object
+      required: [fanEmail, fanName, requestType, description, amountPaid, txRef]
+      properties:
+        fanEmail:
+          type: string
+        fanName:
+          type: string
+        requestType:
+          type: string
+        description:
+          type: string
+        amountPaid:
+          type: number
+        txRef:
+          type: string
+
+    Tip:
+      type: object
+      required: [id, fanEmail, fanName, amount, txRef, message, createdAt]
+      properties:
+        id:
+          type: integer
+        fanEmail:
+          type: string
+        fanName:
+          type: string
+        amount:
+          type: number
+        txRef:
+          type: string
+        message:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    TipInput:
+      type: object
+      required: [fanEmail, fanName, amount, txRef]
+      properties:
+        fanEmail:
+          type: string
+        fanName:
+          type: string
+        amount:
+          type: number
+        txRef:
+          type: string
+        message:
+          type: string
+
+    Stats:
+      type: object
+      required: [totalMessages, totalCalls, totalRequests, totalTips, totalRevenue]
+      properties:
+        totalMessages:
+          type: integer
+        totalCalls:
+          type: integer
+        totalRequests:
+          type: integer
+        totalTips:
+          type: integer
+        totalRevenue:
+          type: number
