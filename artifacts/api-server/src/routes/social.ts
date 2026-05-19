@@ -257,7 +257,7 @@ router.post("/social/github/push", adminAuth, async (req, res): Promise<void> =>
     const timestamp = new Date().toISOString();
     await execAsync(`git commit -m "Auto-sync [${target}] ${timestamp}" --allow-empty`);
 
-    const { stdout, stderr } = await execAsync(`git push "${remote}" HEAD:main --force`);
+    const { stdout, stderr } = await execAsync(`git push "${remote}" HEAD:main --force --no-thin`);
     res.json({ success: true, target, stdout, stderr, timestamp });
   } catch (e: unknown) {
     const err = e instanceof Error ? e.message : String(e);
