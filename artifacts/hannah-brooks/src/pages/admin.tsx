@@ -282,6 +282,15 @@ export default function Admin() {
   const [voiceResult, setVoiceResult] = useState<{ audioUrl?: string; status?: string; message?: string } | null>(null);
   const aiProcessFileRef = useRef<HTMLInputElement>(null);
 
+  // ── AI Scheduler state ──────────────────────────────────────────────────
+  type SchedulerSuggestion = { sessionId: number; fanName: string; lastFanMessage: string; suggestion: string; generatedAt: string };
+  const [schedulerEnabled, setSchedulerEnabled] = useState(false);
+  const [schedulerIntervalMin, setSchedulerIntervalMin] = useState(30);
+  const [schedulerSuggestions, setSchedulerSuggestions] = useState<SchedulerSuggestion[]>([]);
+  const [schedulerLoading, setSchedulerLoading] = useState(false);
+  const [schedulerLastRun, setSchedulerLastRun] = useState<string | null>(null);
+  const [editingSuggestion, setEditingSuggestion] = useState<Record<number, string>>({});
+
   // Data
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
@@ -766,6 +775,76 @@ export default function Admin() {
       toast({ title: "Voice generation failed", description: e instanceof Error ? e.message : "Error", variant: "destructive" });
     }
     setVoiceLoading(false);
+  };
+
+  // ── AI Scheduler functions ──────────────────────────────────────────────
+  const fetchSchedulerStatus = async () => {
+    try {
+      const res = await fetch(`${API}/ai/scheduler/status`, { headers: h });
+      if (!res.ok) return;
+      const data = await res.json() as { enabled: boolean; intervalMinutes: number; lastRun: string | null; suggestions: { sessionId: number; fanName: string; lastFanMessage: string; suggestion: string; generatedAt: string }[] };
+      setSchedulerEnabled(data.enabled ?? false);
+      setSchedulerIntervalMin(data.intervalMinutes ?? 30);
+      setSchedulerSuggestions(data.suggestions ?? []);
+      setSchedulerLastRun(data.lastRun ?? null);
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (tab === "ai-chat") void fetchSchedulerStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const toggleScheduler = async () => {
+    setSchedulerLoading(true);
+    try {
+      const endpoint = schedulerEnabled ? "stop" : "start";
+      const res = await fetch(`${API}/ai/scheduler/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...h },
+        body: JSON.stringify({ intervalMinutes: schedulerIntervalMin }),
+      });
+      const data = await res.json() as { enabled: boolean; intervalMinutes?: number; message?: string };
+      setSchedulerEnabled(data.enabled ?? !schedulerEnabled);
+      toast({ title: data.enabled ? `Scheduler started — every ${schedulerIntervalMin}min` : "Scheduler stopped" });
+      void fetchSchedulerStatus();
+    } catch { toast({ title: "Scheduler error", variant: "destructive" }); }
+    setSchedulerLoading(false);
+  };
+
+  const runSchedulerNow = async () => {
+    setSchedulerLoading(true);
+    try {
+      const res = await fetch(`${API}/ai/scheduler/run-now`, { method: "POST", headers: h });
+      const data = await res.json() as { pendingCount: number; lastRun: string; suggestions: typeof schedulerSuggestions };
+      setSchedulerSuggestions(data.suggestions ?? []);
+      setSchedulerLastRun(data.lastRun ?? null);
+      toast({ title: `Scanned — ${data.pendingCount ?? 0} suggestion${(data.pendingCount ?? 0) !== 1 ? "s" : ""} ready` });
+    } catch { toast({ title: "Scan failed", variant: "destructive" }); }
+    setSchedulerLoading(false);
+  };
+
+  const approveSchedulerSuggestion = async (sessionId: number) => {
+    const sug = schedulerSuggestions.find(s => s.sessionId === sessionId);
+    const msg = (editingSuggestion[sessionId] ?? sug?.suggestion ?? "").trim();
+    if (!msg) return;
+    try {
+      await fetch(`${API}/ai/scheduler/suggestions/${sessionId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...h },
+        body: JSON.stringify({ message: msg }),
+      });
+      toast({ title: "Reply sent to fan!" });
+      setSchedulerSuggestions(prev => prev.filter(s => s.sessionId !== sessionId));
+      setEditingSuggestion(prev => { const n = { ...prev }; delete n[sessionId]; return n; });
+      void fetchAll();
+    } catch { toast({ title: "Failed to send reply", variant: "destructive" }); }
+  };
+
+  const dismissSchedulerSuggestion = async (sessionId: number) => {
+    try { await fetch(`${API}/ai/scheduler/suggestions/${sessionId}/dismiss`, { method: "POST", headers: h }); } catch {}
+    setSchedulerSuggestions(prev => prev.filter(s => s.sessionId !== sessionId));
+    setEditingSuggestion(prev => { const n = { ...prev }; delete n[sessionId]; return n; });
   };
 
   const syncInstagram = async () => {
@@ -1691,6 +1770,109 @@ export default function Admin() {
                     </span>
                   </div>
                 </div>
+
+                {/* ── AI Reply Scheduler Panel ── */}
+                <GoldCard className="p-5" style={{ borderColor: schedulerEnabled ? "rgba(52,211,153,0.3)" : "rgba(201,168,76,0.1)" }}>
+                  <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+                    <div>
+                      <h3 className="font-bold text-white flex items-center gap-2">
+                        <Zap className="w-4 h-4" style={{ color: schedulerEnabled ? "#34d399" : GOLD }} />
+                        Auto-Reply Scheduler
+                        {schedulerEnabled && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-green-500/15 text-green-400 border border-green-500/25">LIVE</span>
+                        )}
+                        {schedulerSuggestions.length > 0 && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold text-black" style={{ background: GOLD }}>
+                            {schedulerSuggestions.length} pending
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-xs text-white/30 mt-0.5">
+                        {schedulerEnabled
+                          ? `Running every ${schedulerIntervalMin}min · Last scan: ${schedulerLastRun ? timeAgo(schedulerLastRun) : "not yet"}`
+                          : "Scans for unanswered fans and queues AI reply suggestions for your one-click approval"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <label className="text-xs text-white/30">Every</label>
+                        <Input type="number" min="5" max="240" value={schedulerIntervalMin}
+                          onChange={e => setSchedulerIntervalMin(parseInt(e.target.value) || 30)}
+                          className="w-16 bg-black/60 border-white/10 text-white text-xs rounded-xl text-center" />
+                        <label className="text-xs text-white/30">min</label>
+                      </div>
+                      <button onClick={runSchedulerNow} disabled={schedulerLoading}
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-white/10 text-white/50 hover:text-white hover:border-white/20 transition-colors disabled:opacity-40">
+                        {schedulerLoading ? "…" : "Scan Now"}
+                      </button>
+                      <button onClick={toggleScheduler} disabled={schedulerLoading}
+                        className="px-4 py-1.5 rounded-xl text-xs font-bold transition-all"
+                        style={schedulerEnabled
+                          ? { background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }
+                          : { background: GOLD_GRAD, color: "#000" }}>
+                        {schedulerEnabled ? "Stop" : "Start Scheduler"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {schedulerSuggestions.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="text-xs font-bold text-white/40 uppercase tracking-widest flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-black shrink-0" style={{ background: GOLD }}>
+                          {schedulerSuggestions.length}
+                        </span>
+                        Pending AI Replies — Edit &amp; Send
+                      </div>
+                      {schedulerSuggestions.map(s => (
+                        <div key={s.sessionId} className="rounded-xl p-4 space-y-3" style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-black shrink-0" style={{ background: GOLD_GRAD }}>
+                                {s.fanName.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-sm font-semibold text-white">{s.fanName}</span>
+                              <span className="text-xs text-white/25">said:</span>
+                            </div>
+                            <button onClick={() => dismissSchedulerSuggestion(s.sessionId)}
+                              className="text-white/20 hover:text-white/50 transition-colors shrink-0">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="text-xs text-white/40 italic px-3 py-2 rounded-lg border border-white/5 bg-white/5 leading-relaxed">
+                            "{s.lastFanMessage.slice(0, 140)}{s.lastFanMessage.length > 140 ? "…" : ""}"
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-white/25 uppercase tracking-widest block mb-1.5">AI Reply (edit before sending)</label>
+                            <Textarea
+                              value={editingSuggestion[s.sessionId] ?? s.suggestion}
+                              onChange={e => setEditingSuggestion(prev => ({ ...prev, [s.sessionId]: e.target.value }))}
+                              rows={2}
+                              className="bg-black/50 border-white/10 text-white text-sm rounded-xl resize-none placeholder:text-white/20" />
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => approveSchedulerSuggestion(s.sessionId)}
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-black"
+                              style={{ background: GOLD_GRAD }}>
+                              <Send className="w-3.5 h-3.5" /> Send Reply
+                            </button>
+                            <button onClick={() => dismissSchedulerSuggestion(s.sessionId)}
+                              className="px-3 py-2 rounded-xl text-sm text-white/30 border border-white/10 hover:text-white/50 transition-colors">
+                              Dismiss
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {schedulerSuggestions.length === 0 && (
+                    <p className="text-center text-xs text-white/20 py-2">
+                      {schedulerEnabled
+                        ? "No pending suggestions — all fans have recent replies"
+                        : 'Click "Scan Now" to check for unanswered fans, or start the scheduler to run automatically'}
+                    </p>
+                  )}
+                </GoldCard>
 
                 <div className="grid grid-cols-3 gap-4">
                   {[

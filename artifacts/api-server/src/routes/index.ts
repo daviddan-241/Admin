@@ -12,6 +12,7 @@ import chatRouter from "./chat";
 import socialRouter from "./social";
 import settingsRouter from "./settings";
 import aiGenerateRouter from "./ai-generate";
+import aiSchedulerRouter from "./ai-scheduler";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(chatRouter);
 router.use(socialRouter);
 router.use(settingsRouter);
 router.use(aiGenerateRouter);
+router.use(aiSchedulerRouter);
 
 export default router;
