@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-20", "web", "bash"]
 
 [deployment]
 router = "application"
@@ -44,13 +44,13 @@ waitForPort = 8080
 name = "Hannah Brooks"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=8081 BASE_PATH=/ pnpm --filter @workspace/hannah-brooks run dev"
-waitForPort = 8081
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=5000 BASE_PATH=/ pnpm --filter @workspace/hannah-brooks run dev"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "AI Persona Studio"
@@ -61,7 +61,7 @@ task = "shell.exec"
 args = "PORT=8082 pnpm --filter @workspace/ai-persona run dev"
 
 [agent]
-stack = "PNPM_WORKSPACE"
+stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
 
 [postMerge]
@@ -83,3 +83,10 @@ externalPort = 3002
 [[ports]]
 localPort = 19001
 externalPort = 3000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[nix]
+channel = "stable-25_05"
