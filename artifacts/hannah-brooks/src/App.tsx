@@ -11,6 +11,7 @@ import Calls from "@/pages/calls";
 import Store from "@/pages/store";
 import Feed from "@/pages/feed";
 import Admin from "@/pages/admin";
+import AppSwitcher from "@/components/AppSwitcher";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
+          <AppSwitcher />
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>

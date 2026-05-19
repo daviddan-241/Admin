@@ -4,6 +4,7 @@ import {
   BarChart3, Settings, Menu, X, Link2, Rss
 } from "lucide-react";
 import type { Page } from "../App";
+import AppSwitcher from "./AppSwitcher";
 
 const GOLD = "#c9a84c";
 const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)";
@@ -61,6 +62,7 @@ export default function Layout({ children, page, onNavigate }: {
             <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: GOLD }} />
             <span className="text-xs mono font-semibold" style={{ color: GOLD }}>LIVE · CONNECTED</span>
           </div>
+          <AppSwitcher />
           <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs text-black"
             style={{ background: GOLD_GRAD }}>
             HB
