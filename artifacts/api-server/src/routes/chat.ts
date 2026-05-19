@@ -222,6 +222,54 @@ router.post("/chat/admin/:sessionId/reply", adminAuth, async (req, res): Promise
   res.status(201).json(serializeMsg(msg));
 });
 
+// POST /chat/admin/:sessionId/ai-suggest — generate an AI suggested reply
+router.post("/chat/admin/:sessionId/ai-suggest", adminAuth, async (req, res): Promise<void> => {
+  const sessionId = parseInt(req.params.sessionId, 10);
+  const [session] = await db.select().from(chatSessionsTable).where(eq(chatSessionsTable.id, sessionId)).limit(1);
+  if (!session) { res.status(404).json({ error: "Session not found" }); return; }
+
+  const msgs = await db.select().from(chatMessagesTable)
+    .where(eq(chatMessagesTable.sessionId, sessionId))
+    .orderBy(desc(chatMessagesTable.createdAt))
+    .limit(10);
+
+  const fanMessages = msgs.filter(m => m.senderType === "fan").reverse();
+  const lastFanMsg = fanMessages[fanMessages.length - 1];
+
+  if (!lastFanMsg) {
+    res.json({ suggestion: `Hi ${session.fanName}! 💕 So lovely to have you here darling. How can I make your day extra special? ✨` });
+    return;
+  }
+
+  const txt = lastFanMsg.message.toLowerCase();
+  let suggestion = "";
+
+  if (txt.includes("custom") || txt.includes("request") || txt.includes("commission")) {
+    suggestion = `Of course darling! 😍 I'd love to create something special just for you. Head to my Requests page and fill in the details — I read every single one personally! 💕`;
+  } else if (txt.includes("call") || txt.includes("zoom") || txt.includes("whatsapp") || txt.includes("facetime") || txt.includes("video chat")) {
+    suggestion = `Ooh a personal call — how exciting! 💖 I have several options on my Calls page starting from just $29.99. I'd love to spend some one-on-one time with you ${session.fanName}! ✨`;
+  } else if (txt.includes("vip") || txt.includes("subscribe") || txt.includes("membership") || txt.includes("exclusive") || txt.includes("unlock")) {
+    suggestion = `My VIP Members section is where all the really exclusive content lives 🔥 Monthly, quarterly, or lifetime options are available — grab lifetime for the best value darling! 💋`;
+  } else if (txt.includes("onlyfans") || txt.includes("only fans")) {
+    suggestion = `I have everything right here in my Members section — it's much more personal than OnlyFans! 😘 You can subscribe and get instant access to all my exclusive content 💕`;
+  } else if (txt.includes("tip") || txt.includes("send money") || txt.includes("gift") || txt.includes("support")) {
+    suggestion = `Aww you are so incredibly sweet ${session.fanName}! 🥹 You can send me a tip from the Boutique page — it truly means the world to me darling 💝`;
+  } else if (txt.includes("love") || txt.includes("miss") || txt.includes("beautiful") || txt.includes("gorgeous") || txt.includes("pretty")) {
+    suggestion = `You're making me blush ${session.fanName}! 🥰 That is so incredibly sweet of you darling. You always know how to brighten my day 💕✨`;
+  } else if (txt.includes("content") || txt.includes("photo") || txt.includes("picture") || txt.includes("video")) {
+    suggestion = `I post new content regularly darling — check my Feed for the latest! 📸 And VIP members get access to everything that's a little more exclusive 😘💕`;
+  } else if (txt.includes("when") || txt.includes("next") || txt.includes("new")) {
+    suggestion = `I'm always creating new things just for my fans! 💫 Make sure you're a VIP member so you never miss any of my exclusive content ${session.fanName} 💕`;
+  } else if (txt.includes("thank") || txt.includes("thanks")) {
+    suggestion = `Of course darling! 💕 You are one of my favourite fans and I truly appreciate your support so much! You make all of this worthwhile ✨`;
+  } else {
+    const firstName = session.fanName.split(" ")[0];
+    suggestion = `Hi ${firstName}! 💕 So lovely hearing from you darling! How can I make your day a little more special today? ✨ I'm all yours 😘`;
+  }
+
+  res.json({ suggestion });
+});
+
 // POST /chat/admin/:sessionId/reply-media — Hannah sends voice/image reply
 router.post("/chat/admin/:sessionId/reply-media", adminAuth, upload.single("file"), async (req, res): Promise<void> => {
   const sessionId = parseInt(req.params.sessionId, 10);

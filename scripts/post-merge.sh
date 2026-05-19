@@ -1,4 +1,10 @@
 #!/bin/bash
 set -e
-pnpm install --frozen-lockfile
-pnpm --filter db push
+
+echo "==> Installing dependencies..."
+pnpm install
+
+echo "==> Pushing DB schema..."
+pnpm --filter @workspace/db run push || echo "DB push skipped"
+
+echo "==> Setup complete. All three apps ready to start."

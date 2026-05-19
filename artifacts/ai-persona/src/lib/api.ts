@@ -111,12 +111,17 @@ export type PlatformSettings = {
 
 export const api = {
   stats: () => apiFetch<Stats>("/stats"),
-  chatSessions: () => apiFetch<ChatSession[]>("/chat/sessions"),
-  chatMessages: (sessionId: number) => apiFetch<ChatMessage[]>(`/chat/${sessionId}/messages`),
+  chatSessions: () => apiFetch<(ChatSession & { unreadCount: number; lastMessage: ChatMessage | null })[]>("/chat/admin/sessions"),
+  chatMessages: (sessionId: number) =>
+    apiFetch<{ session: ChatSession; messages: ChatMessage[] }>(`/chat/admin/${sessionId}/messages`),
   sendReply: (sessionId: number, message: string) =>
-    apiFetch<ChatMessage>(`/chat/${sessionId}/reply`, {
+    apiFetch<ChatMessage>(`/chat/admin/${sessionId}/reply`, {
       method: "POST",
       body: JSON.stringify({ message }),
+    }),
+  aiSuggestReply: (sessionId: number) =>
+    apiFetch<{ suggestion: string }>(`/chat/admin/${sessionId}/ai-suggest`, {
+      method: "POST",
     }),
   posts: () => apiFetch<Post[]>("/posts"),
   syncConfig: () => apiFetch<SocialConfig>("/social/sync/config"),
