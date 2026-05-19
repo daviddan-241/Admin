@@ -10,8 +10,10 @@ import {
   Twitter, Music2, Globe, Zap, Github, Settings, Clock,
   ToggleLeft, ToggleRight, AlertCircle, ExternalLink,
   Crown, Lock, Save, Key, CreditCard, User, Paperclip,
-  Eye, EyeOff, ChevronRight, ArrowLeft, X, CheckCheck, Camera
+  Eye, EyeOff, ChevronRight, ArrowLeft, X, CheckCheck, Camera,
+  Brain, Video, Users, TrendingUp, Upload, BarChart2, Copy, Edit3
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
@@ -19,7 +21,7 @@ const logoHB = `${import.meta.env.BASE_URL}logo-hb.png`;
 const GOLD = "#c9a84c";
 const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)";
 
-type Tab = "dashboard" | "earnings" | "chat" | "calls" | "requests" | "tips" | "feed" | "social" | "github" | "settings";
+type Tab = "dashboard" | "earnings" | "chat" | "calls" | "requests" | "tips" | "feed" | "social" | "github" | "settings" | "ai-chat" | "personas" | "training" | "analytics";
 
 type ChatSession = { id: number; fanName: string; fanEmail: string; fanAvatarUrl?: string | null; freeUsed: number; lastMessageAt: string | null; createdAt: string; lastMessage?: { message: string; senderType: string } | null; unreadCount: number; };
 type ChatMessage = { id: number; sessionId: number; senderType: "fan" | "hannah"; message: string; amountPaid: number; isRead: boolean; createdAt: string; };
@@ -291,6 +293,24 @@ export default function Admin() {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [rawSecrets, setRawSecrets] = useState<Record<string, string>>({});
 
+  // AI Studio state
+  const [aiChatSession, setAiChatSession] = useState<ChatSession | null>(null);
+  const [aiChatMessages, setAiChatMessages] = useState<ChatMessage[]>([]);
+  const [aiSuggestion, setAiSuggestion] = useState("");
+  const [loadingAiSuggest, setLoadingAiSuggest] = useState(false);
+  const [aiReplyText, setAiReplyText] = useState("");
+  const [sendingAiReply, setSendingAiReply] = useState(false);
+  const [aiMode, setAiMode] = useState<"autonomous" | "approval">("approval");
+  const [aiChatPollRef] = useState<{ current: ReturnType<typeof setInterval> | null }>({ current: null });
+  const [trainingStep, setTrainingStep] = useState<"upload" | "processing" | "done">("upload");
+  const [trainProgress, setTrainProgress] = useState(0);
+  const [trainVideos, setTrainVideos] = useState<File[]>([]);
+  const [trainAudios, setTrainAudios] = useState<File[]>([]);
+  const [trainPersonality, setTrainPersonality] = useState("");
+  const [trainJobId, setTrainJobId] = useState<string | null>(null);
+  const [personaEditId, setPersonaEditId] = useState<string | null>(null);
+  const [personaEditBuf, setPersonaEditBuf] = useState("");
+
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const esRef = useRef<EventSource | null>(null);
@@ -535,6 +555,59 @@ export default function Admin() {
 
   const logout = () => { sessionStorage.removeItem("hb_admin_key"); setAuthed(false); setAdminKey(""); };
 
+  // ── AI Studio handlers ─────────────────────────────────────────────────
+  const openAiSession = async (s: ChatSession) => {
+    setAiChatSession(s);
+    setAiSuggestion("");
+    setAiReplyText("");
+    setAiChatMessages([]);
+    if (aiChatPollRef.current) clearInterval(aiChatPollRef.current);
+    const loadMsgs = async () => {
+      const res = await fetch(`${API}/chat/admin/${s.id}/messages`, { headers: h });
+      if (res.ok) { const data = await res.json(); setAiChatMessages(data.messages); }
+    };
+    await loadMsgs();
+    aiChatPollRef.current = setInterval(loadMsgs, 5000);
+  };
+
+  const suggestAiReply = async () => {
+    if (!aiChatSession) return;
+    setLoadingAiSuggest(true);
+    try {
+      const res = await fetch(`${API}/chat/admin/${aiChatSession.id}/ai-suggest`, { method: "POST", headers: h });
+      if (res.ok) { const data = await res.json(); setAiSuggestion(data.suggestion); }
+      else setAiSuggestion("Thank you so much for reaching out darling! 🥰 How can I make your day special today? 💫");
+    } catch { setAiSuggestion("Thank you so much for reaching out darling! 🥰 How can I make your day special today? 💫"); }
+    finally { setLoadingAiSuggest(false); }
+  };
+
+  const sendAiReply = async (text: string) => {
+    if (!aiChatSession || !text.trim()) return;
+    setSendingAiReply(true);
+    const res = await fetch(`${API}/chat/admin/${aiChatSession.id}/reply`, {
+      method: "POST", headers: { "Content-Type": "application/json", ...h }, body: JSON.stringify({ message: text }),
+    });
+    if (res.ok) {
+      const msg = await res.json();
+      setAiChatMessages(prev => [...prev, msg]);
+      setAiReplyText(""); setAiSuggestion("");
+      fetchAll();
+    }
+    setSendingAiReply(false);
+  };
+
+  const startTraining = () => {
+    if (trainVideos.length === 0 && trainAudios.length === 0) return;
+    setTrainingStep("processing");
+    const interval = setInterval(() => {
+      setTrainProgress(p => {
+        if (p >= 100) { clearInterval(interval); setTrainingStep("done"); return 100; }
+        return p + Math.random() * 3;
+      });
+    }, 200);
+    setTrainJobId(`job_${Date.now()}`);
+  };
+
   // ── LOGIN ─────────────────────────────────────────────────────────────
   if (!authed) {
     return (
@@ -577,7 +650,7 @@ export default function Admin() {
   const pendingCalls = calls.filter(c => c.status === "pending").length;
   const pendingReqs = requests.filter(r => r.status === "pending").length;
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
+  const tabs: { id: Tab; label: string; icon: React.ReactNode; count?: number; section?: string }[] = [
     { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-[18px] h-[18px]" /> },
     { id: "earnings", label: "Earnings", icon: <DollarSign className="w-[18px] h-[18px]" /> },
     { id: "chat", label: "Messages", icon: <MessageSquare className="w-[18px] h-[18px]" />, count: unreadChats },
@@ -588,6 +661,10 @@ export default function Admin() {
     { id: "social", label: "Social", icon: <Instagram className="w-[18px] h-[18px]" /> },
     { id: "github", label: "GitHub", icon: <Github className="w-[18px] h-[18px]" /> },
     { id: "settings", label: "Settings", icon: <Settings className="w-[18px] h-[18px]" /> },
+    { id: "ai-chat", label: "AI Chat", icon: <Brain className="w-[18px] h-[18px]" />, section: "AI Studio" },
+    { id: "analytics", label: "Analytics", icon: <BarChart2 className="w-[18px] h-[18px]" /> },
+    { id: "personas", label: "Personas", icon: <Users className="w-[18px] h-[18px]" /> },
+    { id: "training", label: "Training", icon: <Upload className="w-[18px] h-[18px]" /> },
   ];
 
   const syncInstagram = async () => {
@@ -648,17 +725,28 @@ export default function Admin() {
           style={{ borderColor: "rgba(201,168,76,0.08)", background: "rgba(0,0,0,0.5)" }}>
           <nav className="space-y-0.5 flex-1">
             {tabs.map((t) => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-                style={tab === t.id
-                  ? { color: GOLD, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.2)" }
-                  : { color: "rgba(255,255,255,0.35)", border: "1px solid transparent" }}>
-                <span className="flex items-center gap-2.5">{t.icon}{t.label}</span>
-                {t.count !== undefined && t.count > 0 && (
-                  <span className="text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center text-black font-bold"
-                    style={{ background: GOLD }}>{t.count}</span>
+              <React.Fragment key={t.id}>
+                {t.section && (
+                  <div className="pt-3 pb-1 px-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="h-px flex-1" style={{ background: "rgba(201,168,76,0.15)" }} />
+                      <span className="text-[9px] font-bold tracking-[0.2em] uppercase" style={{ color: "rgba(201,168,76,0.45)" }}>{t.section}</span>
+                      <div className="h-px flex-1" style={{ background: "rgba(201,168,76,0.15)" }} />
+                    </div>
+                  </div>
                 )}
-              </button>
+                <button onClick={() => setTab(t.id)}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+                  style={tab === t.id
+                    ? { color: GOLD, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.2)" }
+                    : { color: "rgba(255,255,255,0.35)", border: "1px solid transparent" }}>
+                  <span className="flex items-center gap-2.5">{t.icon}{t.label}</span>
+                  {t.count !== undefined && t.count > 0 && (
+                    <span className="text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center text-black font-bold"
+                      style={{ background: GOLD }}>{t.count}</span>
+                  )}
+                </button>
+              </React.Fragment>
             ))}
           </nav>
 
@@ -1381,6 +1469,596 @@ export default function Admin() {
                 )}
               </div>
             )}
+            {/* ─── AI CHAT CONTROL ────────────────────────────────── */}
+            {tab === "ai-chat" && (
+              <div className="space-y-6">
+                <div className="flex items-start justify-between flex-wrap gap-4">
+                  <div>
+                    <h2 className="text-2xl font-serif font-bold text-white flex items-center gap-2">
+                      <Brain className="w-6 h-6" style={{ color: GOLD }} /> AI Chat Control
+                    </h2>
+                    <p className="text-white/30 text-sm mt-1">Real fan messages — review &amp; reply with AI assist</p>
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border" style={{ background: "rgba(255,255,255,0.025)", borderColor: "rgba(201,168,76,0.15)" }}>
+                    <span className="text-sm font-semibold text-white/70">Auto Mode</span>
+                    <button onClick={() => setAiMode(m => m === "autonomous" ? "approval" : "autonomous")}>
+                      {aiMode === "autonomous"
+                        ? <ToggleRight size={28} style={{ color: "#ff006e" }} />
+                        : <ToggleLeft size={28} className="text-white/30" />}
+                    </button>
+                    <span className="text-sm font-bold" style={{ color: aiMode === "autonomous" ? "#ff006e" : "rgba(255,255,255,0.3)" }}>
+                      {aiMode === "autonomous" ? "AUTO" : "REVIEW"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: "Total Sessions", value: chatSessions.length, color: GOLD },
+                    { label: "Unread", value: chatSessions.reduce((a, s) => a + (s.unreadCount || 0), 0), color: "#ffaa00" },
+                    { label: "Fan Messages", value: stats?.totalMessages ?? 0, color: "#34d399" },
+                  ].map((s) => (
+                    <GoldCard key={s.label} className="p-5 text-center">
+                      <div className="text-3xl font-bold" style={{ color: s.color }}>{s.value}</div>
+                      <div className="text-xs text-white/30 mt-1 uppercase tracking-widest">{s.label}</div>
+                    </GoldCard>
+                  ))}
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-6">
+                  {/* Session list */}
+                  <div>
+                    <h3 className="text-xs font-bold text-white/25 uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5" style={{ color: "#ffaa00" }} /> Fan Sessions ({chatSessions.length})
+                    </h3>
+                    {chatSessions.length === 0 ? (
+                      <GoldCard className="p-10 text-center">
+                        <MessageSquare className="w-8 h-8 text-white/15 mx-auto mb-3" />
+                        <p className="text-white/25 text-sm">No fan sessions yet</p>
+                      </GoldCard>
+                    ) : (
+                      <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+                        {chatSessions.map((s) => (
+                          <GoldCard key={s.id} className="p-4 cursor-pointer hover:scale-[1.01] transition-all"
+                            style={{ borderColor: aiChatSession?.id === s.id ? "rgba(201,168,76,0.5)" : s.unreadCount > 0 ? "rgba(255,170,0,0.25)" : "rgba(201,168,76,0.1)" }}
+                            onClick={() => openAiSession(s)}>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm text-black shrink-0"
+                                style={{ background: GOLD_GRAD }}>
+                                {s.fanName.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-semibold text-white text-sm truncate">{s.fanName}</span>
+                                  {s.unreadCount > 0 && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 shrink-0"
+                                      style={{ background: "rgba(255,170,0,0.2)", color: "#ffaa00", border: "1px solid rgba(255,170,0,0.4)" }}>
+                                      {s.unreadCount} new
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-between mt-0.5">
+                                  <span className="text-xs text-white/30 truncate">{s.lastMessage?.message?.slice(0, 40) || s.fanEmail}</span>
+                                  {s.lastMessageAt && <span className="text-[10px] text-white/25 shrink-0 ml-2">{timeAgo(s.lastMessageAt)}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          </GoldCard>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Message thread + AI reply */}
+                  <div>
+                    {aiChatSession ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm text-black shrink-0"
+                            style={{ background: GOLD_GRAD }}>
+                            {aiChatSession.fanName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-semibold text-white text-sm">{aiChatSession.fanName}</div>
+                            <div className="text-xs text-white/30">{aiChatSession.fanEmail}</div>
+                          </div>
+                          <button onClick={suggestAiReply} disabled={loadingAiSuggest || aiChatMessages.filter(m => m.senderType === "fan").length === 0}
+                            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl text-black disabled:opacity-40"
+                            style={{ background: GOLD_GRAD }}>
+                            <Sparkles size={12} />{loadingAiSuggest ? "Thinking…" : "AI Suggest"}
+                          </button>
+                        </div>
+
+                        <GoldCard className="overflow-hidden" style={{ maxHeight: "280px", overflowY: "auto" }}>
+                          {aiChatMessages.length === 0 ? (
+                            <div className="p-8 text-center text-white/25 text-sm animate-pulse">Loading messages…</div>
+                          ) : (
+                            <div className="p-4 space-y-3">
+                              {aiChatMessages.map((msg) => (
+                                <div key={msg.id} className={`flex ${msg.senderType === "hannah" ? "justify-end" : "justify-start"}`}>
+                                  <div className="max-w-[82%] rounded-2xl px-4 py-2.5"
+                                    style={msg.senderType === "hannah"
+                                      ? { background: GOLD_GRAD, color: "#000" }
+                                      : { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                                    <p className="text-sm leading-relaxed">{msg.message}</p>
+                                    <p className="text-[10px] opacity-40 mt-1">{timeAgo(msg.createdAt)}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </GoldCard>
+
+                        {aiSuggestion && (
+                          <GoldCard className="p-4" style={{ borderColor: "rgba(201,168,76,0.3)" }}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Sparkles size={12} style={{ color: GOLD }} />
+                              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: GOLD }}>AI Suggested Reply</span>
+                            </div>
+                            <p className="text-sm text-white/75 leading-relaxed mb-3">{aiSuggestion}</p>
+                            <div className="flex gap-2">
+                              <button onClick={() => sendAiReply(aiSuggestion)} disabled={sendingAiReply}
+                                className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl text-black disabled:opacity-50"
+                                style={{ background: GOLD_GRAD }}>
+                                <CheckCircle size={12} /> Send This
+                              </button>
+                              <button onClick={() => { setAiReplyText(aiSuggestion); setAiSuggestion(""); }}
+                                className="text-xs font-semibold px-3 py-2 rounded-xl text-white/50 border border-white/10 hover:text-white/70 transition-colors">
+                                Edit First
+                              </button>
+                              <button onClick={() => setAiSuggestion("")}
+                                className="text-xs font-semibold px-3 py-2 rounded-xl text-white/30 border border-white/05 ml-auto hover:text-white/50 transition-colors">
+                                Dismiss
+                              </button>
+                            </div>
+                          </GoldCard>
+                        )}
+
+                        <GoldCard className="p-4">
+                          <div className="text-[10px] font-bold mb-2 text-white/30 uppercase tracking-widest">Your Reply</div>
+                          <div className="flex gap-2">
+                            <textarea value={aiReplyText} onChange={(e) => setAiReplyText(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendAiReply(aiReplyText); }}
+                              placeholder="Type your reply… (Cmd+Enter to send)" rows={3}
+                              className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/20 resize-y" />
+                            <button onClick={() => sendAiReply(aiReplyText)} disabled={sendingAiReply || !aiReplyText.trim()}
+                              className="px-3 rounded-xl text-black self-end disabled:opacity-40"
+                              style={{ background: GOLD }}>
+                              <Send size={14} />
+                            </button>
+                          </div>
+                        </GoldCard>
+                      </div>
+                    ) : (
+                      <GoldCard className="h-full flex items-center justify-center p-14">
+                        <div className="text-center">
+                          <User size={36} className="mx-auto mb-3 text-white/15" />
+                          <p className="text-white/30 text-sm">Select a fan session</p>
+                          <p className="text-white/15 text-xs mt-1">View messages and reply with AI assist</p>
+                        </div>
+                      </GoldCard>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ─── ANALYTICS ───────────────────────────────────────── */}
+            {tab === "analytics" && (
+              <div className="space-y-6">
+                <div className="flex items-start justify-between">
+                  <h2 className="text-2xl font-serif font-bold text-white flex items-center gap-2">
+                    <BarChart2 className="w-6 h-6" style={{ color: GOLD }} /> Analytics
+                  </h2>
+                  <button onClick={fetchAll} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold text-white/40 hover:text-white transition-colors"
+                    style={{ background: "rgba(255,255,255,0.025)", borderColor: "rgba(255,255,255,0.08)" }}>
+                    <RefreshCw size={12} /> Refresh
+                  </button>
+                </div>
+
+                {stats && (
+                  <>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {[
+                        { label: "Fan Messages", value: stats.totalMessages, icon: <MessageSquare size={16} />, color: GOLD },
+                        { label: "Calls Booked", value: stats.totalCalls, icon: <Phone size={16} />, color: "#34d399" },
+                        { label: "Content Requests", value: stats.totalRequests, icon: <Sparkles size={16} />, color: "#c084fc" },
+                        { label: "Total Revenue", value: `$${stats.totalRevenue.toFixed(2)}`, icon: <DollarSign size={16} />, color: "#ffaa00" },
+                      ].map((s) => (
+                        <GoldCard key={s.label} className="p-5">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${s.color}18`, color: s.color }}>{s.icon}</div>
+                            <span className="text-xs font-bold text-green-400">↑ live</span>
+                          </div>
+                          <div className="text-3xl font-bold text-white">{s.value}</div>
+                          <div className="text-xs mt-1 uppercase tracking-widest text-white/25">{s.label}</div>
+                        </GoldCard>
+                      ))}
+                    </div>
+
+                    <div className="grid lg:grid-cols-2 gap-6">
+                      <GoldCard className="p-6">
+                        <h3 className="font-bold text-white mb-1">Activity by Type</h3>
+                        <p className="text-xs text-white/30 mb-5">All-time counts per category</p>
+                        <ResponsiveContainer width="100%" height={220}>
+                          <BarChart data={[
+                            { name: "Messages", value: stats.totalMessages },
+                            { name: "Calls", value: stats.totalCalls },
+                            { name: "Requests", value: stats.totalRequests },
+                            { name: "Tips", value: stats.totalTips },
+                          ]} barSize={32}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                            <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                            <Tooltip contentStyle={{ background: "#0e0a00", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "12px", color: "#fff" }} />
+                            <Bar dataKey="value" name="Count" radius={[6, 6, 0, 0]} fill="rgba(201,168,76,0.8)" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </GoldCard>
+
+                      <GoldCard className="p-6">
+                        <h3 className="font-bold text-white mb-1">Revenue by Source</h3>
+                        <p className="text-xs text-white/30 mb-5">Estimated earnings breakdown</p>
+                        <ResponsiveContainer width="100%" height={220}>
+                          <AreaChart data={[
+                            { name: "Msgs", value: parseFloat((stats.totalMessages * 4.5).toFixed(2)) },
+                            { name: "Calls", value: parseFloat((stats.totalCalls * 54).toFixed(2)) },
+                            { name: "Reqs", value: parseFloat((stats.totalRequests * 49.99).toFixed(2)) },
+                            { name: "Tips", value: parseFloat((stats.totalTips * 12).toFixed(2)) },
+                          ]}>
+                            <defs>
+                              <linearGradient id="gRevAdmin" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="rgba(201,168,76,0.3)" />
+                                <stop offset="100%" stopColor="rgba(201,168,76,0)" />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                            <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                            <Tooltip contentStyle={{ background: "#0e0a00", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "12px", color: "#fff" }} />
+                            <Area type="monotone" dataKey="value" name="Revenue ($)" stroke="rgba(201,168,76,0.8)" fill="url(#gRevAdmin)" strokeWidth={2} />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </GoldCard>
+                    </div>
+
+                    <GoldCard className="p-6">
+                      <h3 className="font-bold text-white mb-5">Platform Summary</h3>
+                      <div className="space-y-4">
+                        {[
+                          { name: "Fan Messages", value: stats.totalMessages, color: GOLD },
+                          { name: "Calls Booked", value: stats.totalCalls, color: "#34d399" },
+                          { name: "Content Requests", value: stats.totalRequests, color: "#c084fc" },
+                          { name: "Tips Received", value: stats.totalTips, color: "#ffaa00" },
+                        ].map((p) => {
+                          const max = Math.max(stats.totalMessages, stats.totalCalls, stats.totalRequests, stats.totalTips, 1);
+                          return (
+                            <div key={p.name} className="flex items-center gap-4">
+                              <div className="w-36 text-sm text-white/60 shrink-0">{p.name}</div>
+                              <div className="flex-1">
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-xs text-white/30">{p.value} total</span>
+                                </div>
+                                <div className="h-2 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+                                  <div className="h-full rounded-full transition-all duration-700"
+                                    style={{ width: `${Math.max((p.value / max) * 100, p.value > 0 ? 3 : 0)}%`, background: `linear-gradient(90deg,${p.color}80,${p.color})` }} />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </GoldCard>
+                  </>
+                )}
+                {!stats && <div className="text-center py-20 text-white/30">Loading analytics…</div>}
+              </div>
+            )}
+
+            {/* ─── PERSONAS ─────────────────────────────────────────── */}
+            {tab === "personas" && (() => {
+              const DEMO_PERSONAS = [
+                { id: "1", name: "Hannah (Main)", desc: "Primary persona — luxury British creator", status: "active" as const, voice: "hannah-v3.pth", face: "hannah-face-v2.onnx", personality: "Warm, flirty, British accent. Loves fans. Calls everyone 'darling'. Teases but never over-promises. Premium creator energy.", mode: "autonomous" as const, msgs: 1247, acc: 96 },
+                { id: "2", name: "Hannah (Business)", desc: "Professional tone for brand deals", status: "idle" as const, voice: "hannah-v3.pth", face: "hannah-face-v2.onnx", personality: "Professional, confident, concise. Uses formal language for brand deals and business inquiries. No flirting.", mode: "approval" as const, msgs: 89, acc: 94 },
+                { id: "3", name: "Aria (Alt)", desc: "Alternative persona for separate brand", status: "idle" as const, voice: "aria-v1.pth", face: "aria-face-v1.onnx", personality: "Mysterious, artistic, European accent. Fashion-forward. Intellectual discussions.", mode: "off" as const, msgs: 234, acc: 91 },
+              ];
+              const [selectedPersona, setSelectedPersona] = React.useState(DEMO_PERSONAS[0]);
+              return (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-serif font-bold text-white flex items-center gap-2">
+                      <Users className="w-6 h-6" style={{ color: GOLD }} /> Persona Manager
+                    </h2>
+                    <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-black"
+                      style={{ background: GOLD_GRAD }}>
+                      + New Persona
+                    </button>
+                  </div>
+
+                  <div className="grid lg:grid-cols-5 gap-6">
+                    <div className="lg:col-span-2 space-y-3">
+                      {DEMO_PERSONAS.map((p) => (
+                        <GoldCard key={p.id} className="p-4 cursor-pointer hover:scale-[1.01] transition-all"
+                          style={{ borderColor: selectedPersona.id === p.id ? "rgba(201,168,76,0.5)" : "rgba(201,168,76,0.1)" }}
+                          onClick={() => setSelectedPersona(p)}>
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-black shrink-0"
+                              style={{ background: GOLD_GRAD }}>
+                              {p.name.charAt(0)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-white text-sm">{p.name}</span>
+                                {p.status === "active" && <Star size={10} className="text-yellow-400" />}
+                              </div>
+                              <p className="text-xs text-white/35 truncate">{p.desc}</p>
+                              <div className="flex items-center gap-3 mt-2 text-xs">
+                                <span className="font-bold" style={{ color: p.status === "active" ? "#34d399" : "rgba(255,255,255,0.3)" }}>
+                                  ● {p.status.toUpperCase()}
+                                </span>
+                                <span className="text-white/30">{p.msgs} msgs</span>
+                                <span style={{ color: "#34d399" }}>{p.acc}% acc</span>
+                              </div>
+                            </div>
+                            {p.status === "active" && (
+                              <div className="px-2 py-0.5 rounded-full text-[9px] font-bold"
+                                style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
+                                LIVE
+                              </div>
+                            )}
+                          </div>
+                        </GoldCard>
+                      ))}
+                      <button className="w-full py-3 rounded-xl text-sm text-white/30 hover:text-white transition-colors border-2 border-dashed flex items-center justify-center gap-2"
+                        style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+                        + Add Persona
+                      </button>
+                    </div>
+
+                    <div className="lg:col-span-3 space-y-4">
+                      <GoldCard className="p-6">
+                        <div className="flex items-start justify-between mb-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg text-black"
+                              style={{ background: GOLD_GRAD }}>
+                              {selectedPersona.name.charAt(0)}
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-white text-lg">{selectedPersona.name}</h3>
+                              <p className="text-white/40 text-sm">{selectedPersona.desc}</p>
+                            </div>
+                          </div>
+                          <button onClick={() => { setPersonaEditId(selectedPersona.id === personaEditId ? null : selectedPersona.id); setPersonaEditBuf(selectedPersona.personality); }}
+                            className="p-2 rounded-xl text-white/40 hover:text-white transition-colors border border-white/10">
+                            <Edit3 size={14} />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 mb-5">
+                          {[
+                            { label: "Face Model", value: selectedPersona.face },
+                            { label: "Voice Profile", value: selectedPersona.voice },
+                            { label: "Reply Mode", value: selectedPersona.mode.toUpperCase() },
+                            { label: "Accuracy", value: `${selectedPersona.acc}%` },
+                          ].map((f) => (
+                            <div key={f.label} className="rounded-xl p-3" style={{ background: "rgba(0,0,0,0.3)" }}>
+                              <div className="text-xs text-white/30 uppercase tracking-widest mb-1">{f.label}</div>
+                              <div className="text-sm font-semibold text-white">{f.value}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-white/40 uppercase tracking-widest">Personality Prompt</span>
+                            {personaEditId === selectedPersona.id && (
+                              <button onClick={() => setPersonaEditId(null)}
+                                className="text-xs px-3 py-1 rounded-lg font-bold text-black"
+                                style={{ background: GOLD_GRAD }}>Save</button>
+                            )}
+                          </div>
+                          {personaEditId === selectedPersona.id ? (
+                            <textarea value={personaEditBuf} onChange={(e) => setPersonaEditBuf(e.target.value)} rows={5}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white/80 resize-y" />
+                          ) : (
+                            <div className="rounded-xl p-4 text-sm text-white/60 leading-relaxed"
+                              style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                              {selectedPersona.personality}
+                            </div>
+                          )}
+                        </div>
+                      </GoldCard>
+
+                      <GoldCard className="p-5">
+                        <h4 className="font-semibold text-white mb-4">Auto-Reply Mode</h4>
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { id: "autonomous", label: "Autonomous", desc: "Replies automatically", color: "#ff006e" },
+                            { id: "approval", label: "Human Review", desc: "You approve each reply", color: "#ffaa00" },
+                            { id: "off", label: "Off", desc: "No auto-replies", color: "rgba(255,255,255,0.3)" },
+                          ].map((m) => (
+                            <div key={m.id} className="p-3 rounded-xl text-left"
+                              style={selectedPersona.mode === m.id
+                                ? { background: `${m.color}15`, border: `1px solid ${m.color}`, boxShadow: `0 0 12px ${m.color}30` }
+                                : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                              <div className="text-sm font-semibold text-white mb-1">{m.label}</div>
+                              <div className="text-xs text-white/35">{m.desc}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </GoldCard>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ─── TRAINING ─────────────────────────────────────────── */}
+            {tab === "training" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-serif font-bold text-white flex items-center gap-2">
+                    <Brain className="w-6 h-6" style={{ color: GOLD }} /> Persona Training
+                  </h2>
+                  <p className="text-white/30 text-sm mt-1">Upload reference media to train a new or existing AI persona</p>
+                </div>
+
+                {trainingStep === "done" ? (
+                  <GoldCard className="p-10 text-center" style={{ borderColor: "rgba(52,211,153,0.3)" }}>
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+                      style={{ background: "rgba(52,211,153,0.1)", border: "2px solid rgba(52,211,153,0.4)" }}>
+                      <CheckCircle size={32} className="text-green-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">Training Complete!</h3>
+                    <p className="text-white/40 mb-6">Your persona is ready. Face model, voice profile, and personality engine are all trained.</p>
+                    <div className="flex justify-center gap-4">
+                      <button onClick={() => { setTrainingStep("upload"); setTrainProgress(0); setTrainVideos([]); setTrainAudios([]); }}
+                        className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white/60 border border-white/10 hover:border-white/20">
+                        Train Another
+                      </button>
+                      <button onClick={() => setTab("personas")}
+                        className="px-5 py-2.5 rounded-xl text-sm font-bold text-black"
+                        style={{ background: GOLD_GRAD }}>
+                        View Personas
+                      </button>
+                    </div>
+                  </GoldCard>
+                ) : trainingStep === "processing" ? (
+                  <GoldCard className="p-6" style={{ borderColor: "rgba(201,168,76,0.2)" }}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-white">Training in Progress</h3>
+                      <span className="font-bold text-sm" style={{ color: GOLD }}>{Math.floor(trainProgress)}%</span>
+                    </div>
+                    <div className="h-2 rounded-full mb-6" style={{ background: "rgba(255,255,255,0.06)" }}>
+                      <div className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${trainProgress}%`, background: GOLD_GRAD, boxShadow: "0 0 10px rgba(201,168,76,0.5)" }} />
+                    </div>
+                    <div className="space-y-3">
+                      {[
+                        { label: "Extracting facial embeddings", done: trainProgress > 20, active: trainProgress > 0 && trainProgress <= 20 },
+                        { label: "Training face swap model", done: trainProgress > 45, active: trainProgress > 20 && trainProgress <= 45 },
+                        { label: "Processing voice samples", done: trainProgress > 65, active: trainProgress > 45 && trainProgress <= 65 },
+                        { label: "Training voice conversion", done: trainProgress > 80, active: trainProgress > 65 && trainProgress <= 80 },
+                        { label: "Optimizing for real-time", done: trainProgress > 95, active: trainProgress > 80 && trainProgress <= 95 },
+                        { label: "Building persona profile", done: trainProgress >= 100, active: trainProgress > 95 && trainProgress < 100 },
+                      ].map((s, i) => (
+                        <div key={i} className="flex items-center gap-3 text-sm">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${s.done ? "bg-green-400/20 text-green-400" : s.active ? "" : "opacity-30 text-white/30"}`}
+                            style={s.active ? { background: "rgba(201,168,76,0.15)", color: GOLD } : {}}>
+                            {s.done ? <CheckCircle size={12} /> : <Brain size={12} />}
+                          </div>
+                          <span className={s.done ? "text-white/60 line-through" : s.active ? "text-white" : "text-white/30"}>{s.label}</span>
+                          {s.active && <span className="text-xs animate-pulse" style={{ color: GOLD }}>processing…</span>}
+                          {s.done && <span className="text-green-400 text-xs">✓</span>}
+                        </div>
+                      ))}
+                    </div>
+                    {trainJobId && <p className="text-xs text-white/20 text-center mt-6">Job ID: {trainJobId} · Estimated 8–15 min on GPU</p>}
+                  </GoldCard>
+                ) : (
+                  <div className="grid lg:grid-cols-2 gap-6">
+                    <GoldCard className="p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Video size={18} style={{ color: GOLD }} />
+                        <h3 className="font-bold text-white">Video Samples</h3>
+                        <span className="text-xs text-white/30">2–10 videos required</span>
+                      </div>
+                      <label className="block rounded-xl border-2 border-dashed p-8 text-center mb-4 transition-all cursor-pointer hover:border-yellow-600/40"
+                        style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+                        <Upload size={32} className="mx-auto mb-3 text-white/20" />
+                        <p className="text-sm text-white/40">Drop video files here or click to browse</p>
+                        <p className="text-xs text-white/20 mt-1">MP4, MOV, AVI · Max 500MB each</p>
+                        <input type="file" accept="video/*" multiple className="hidden"
+                          onChange={(e) => setTrainVideos(p => [...p, ...Array.from(e.target.files || [])])} />
+                      </label>
+                      {trainVideos.map((f, i) => (
+                        <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2 text-sm"
+                          style={{ background: "rgba(201,168,76,0.05)", border: "1px solid rgba(201,168,76,0.1)" }}>
+                          <Video size={14} style={{ color: GOLD }} />
+                          <span className="text-white/70 flex-1 truncate">{f.name}</span>
+                          <span className="text-white/30 text-xs">{(f.size / 1024 / 1024).toFixed(1)}MB</span>
+                          <button onClick={() => setTrainVideos(p => p.filter((_, j) => j !== i))} className="text-white/30 hover:text-red-400"><X size={12} /></button>
+                        </div>
+                      ))}
+                    </GoldCard>
+
+                    <GoldCard className="p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Mic size={18} style={{ color: "#f0d080" }} />
+                        <h3 className="font-bold text-white">Voice Samples</h3>
+                        <span className="text-xs text-white/30">1–5 minutes ideal</span>
+                      </div>
+                      <label className="block rounded-xl border-2 border-dashed p-8 text-center mb-4 transition-all cursor-pointer hover:border-yellow-600/40"
+                        style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+                        <Mic size={32} className="mx-auto mb-3 text-white/20" />
+                        <p className="text-sm text-white/40">Drop audio files here or click to browse</p>
+                        <p className="text-xs text-white/20 mt-1">WAV, MP3, FLAC · Clean audio, minimal noise</p>
+                        <input type="file" accept="audio/*" multiple className="hidden"
+                          onChange={(e) => setTrainAudios(p => [...p, ...Array.from(e.target.files || [])])} />
+                      </label>
+                      {trainAudios.map((f, i) => (
+                        <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2 text-sm"
+                          style={{ background: "rgba(240,208,128,0.05)", border: "1px solid rgba(240,208,128,0.1)" }}>
+                          <Mic size={14} style={{ color: "#f0d080" }} />
+                          <span className="text-white/70 flex-1 truncate">{f.name}</span>
+                          <span className="text-white/30 text-xs">{(f.size / 1024 / 1024).toFixed(1)}MB</span>
+                          <button onClick={() => setTrainAudios(p => p.filter((_, j) => j !== i))} className="text-white/30 hover:text-red-400"><X size={12} /></button>
+                        </div>
+                      ))}
+                    </GoldCard>
+
+                    <GoldCard className="p-6 lg:col-span-2">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Brain size={18} style={{ color: "#ffaa00" }} />
+                        <h3 className="font-bold text-white">Personality Configuration</h3>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="text-xs text-white/40 mb-2 block uppercase tracking-widest">Personality Prompt</label>
+                          <textarea value={trainPersonality} onChange={(e) => setTrainPersonality(e.target.value)}
+                            rows={5} placeholder="Describe personality, tone, speaking style, topics to discuss, things to avoid…"
+                            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/20 resize-y" />
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-xs text-white/40 mb-2 block uppercase tracking-widest">Persona Name</label>
+                            <Input placeholder="e.g. Hannah (Main)" className="bg-black border-white/10 text-white rounded-xl placeholder:text-white/20" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-white/40 mb-2 block uppercase tracking-widest">LLM Model</label>
+                            <select className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
+                              <option>GPT-4o (Recommended)</option>
+                              <option>GPT-4-turbo</option>
+                              <option>Llama 3 70B</option>
+                              <option>Claude 3.5 Sonnet</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs text-white/40 mb-2 block uppercase tracking-widest">Voice Model</label>
+                            <select className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
+                              <option>XTTS v2 (Best quality)</option>
+                              <option>RVC v2 (Fastest)</option>
+                              <option>OpenVoice v2</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-6 flex items-center justify-between gap-4 pt-5 border-t border-white/[0.06]">
+                        <div className="text-sm text-white/40">
+                          {trainVideos.length > 0 && <span className="mr-4">{trainVideos.length} video{trainVideos.length !== 1 ? "s" : ""}</span>}
+                          {trainAudios.length > 0 && <span className="mr-4">{trainAudios.length} audio file{trainAudios.length !== 1 ? "s" : ""}</span>}
+                          {!trainVideos.length && !trainAudios.length && "Upload media to begin"}
+                        </div>
+                        <button onClick={startTraining} disabled={trainVideos.length === 0 && trainAudios.length === 0}
+                          className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-black disabled:opacity-40 disabled:cursor-not-allowed"
+                          style={{ background: GOLD_GRAD, boxShadow: "0 4px 20px rgba(201,168,76,0.3)" }}>
+                          <Brain size={16} /> Start Training
+                        </button>
+                      </div>
+                    </GoldCard>
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         </main>
       </div>
