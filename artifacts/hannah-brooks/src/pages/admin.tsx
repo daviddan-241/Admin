@@ -286,8 +286,8 @@ export default function Admin() {
   const [tiktokHandleInput, setTiktokHandleInput] = useState("");
   const [syncIntervalInput, setSyncIntervalInput] = useState("6");
   const [lastSyncResult, setLastSyncResult] = useState<Record<string, unknown> | null>(null);
-  const [githubPushing, setGithubPushing] = useState(false);
-  const [githubResult, setGithubResult] = useState<{ success?: boolean; error?: string } | null>(null);
+  const [githubPushing, setGithubPushing] = useState<"public" | "admin" | null>(null);
+  const [githubResult, setGithubResult] = useState<{ target?: string; success?: boolean; error?: string } | null>(null);
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings>({});
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -535,16 +535,20 @@ export default function Admin() {
     else setSyncingAll(false);
   };
 
-  const pushToGitHub = async () => {
-    setGithubPushing(true); setGithubResult(null);
+  const pushToGitHub = async (target: "public" | "admin") => {
+    setGithubPushing(target); setGithubResult(null);
     try {
-      const res = await fetch(`${API}/social/github/push`, { method: "POST", headers: h });
+      const res = await fetch(`${API}/social/github/push`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...h },
+        body: JSON.stringify({ target }),
+      });
       const data = await res.json();
       setGithubResult(data);
-      if (res.ok && data.success) toast({ title: "✓ Pushed to GitHub!" });
+      if (res.ok && data.success) toast({ title: `✓ Pushed to ${target === "admin" ? "Admin" : "Hannah-brooks-love"}!` });
       else toast({ title: "Push failed", description: data.error, variant: "destructive" });
     } catch { toast({ title: "Network error", variant: "destructive" }); }
-    setGithubPushing(false);
+    setGithubPushing(null);
   };
 
   const enableNotifications = async () => {
@@ -702,11 +706,20 @@ export default function Admin() {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {activity.length > 0 && (
-            <div className="relative">
-              <div className="w-2 h-2 rounded-full animate-pulse absolute -top-0.5 -right-0.5" style={{ background: GOLD }} />
-            </div>
-          )}
+          {/* Notification badge — unread messages + pending items */}
+          {(() => {
+            const totalBadge = (chatSessions.reduce((a, s) => a + (s.unreadCount || 0), 0)) +
+              calls.filter(c => c.status === "pending").length +
+              requests.filter(r => r.status === "pending").length;
+            return totalBadge > 0 ? (
+              <button onClick={() => setTab("chat")} className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-black mr-1"
+                style={{ background: GOLD_GRAD, boxShadow: "0 0 14px rgba(201,168,76,0.5)" }}>
+                <Bell className="w-3.5 h-3.5" />
+                {totalBadge}
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-ping" />
+              </button>
+            ) : null;
+          })()}
           <button onClick={enableNotifications} className="p-2 rounded-xl text-white/30 hover:text-white transition-colors hover:bg-white/5">
             {notifEnabled ? <Bell className="w-4 h-4" style={{ color: GOLD }} /> : <BellOff className="w-4 h-4" />}
           </button>
@@ -1348,29 +1361,100 @@ export default function Admin() {
 
             {/* ─── GITHUB ─────────────────────────────────────────── */}
             {tab === "github" && (
-              <div className="space-y-6 max-w-2xl">
+              <div className="space-y-6 max-w-3xl">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold text-white">Push to GitHub</h2>
-                  <p className="text-white/30 text-sm mt-1">Your GITHUB_PERSONAL_ACCESS_TOKEN is auto-used to push to the repo.</p>
+                  <h2 className="text-2xl font-serif font-bold text-white flex items-center gap-2">
+                    <Github className="w-6 h-6" style={{ color: GOLD }} /> GitHub Push
+                  </h2>
+                  <p className="text-white/30 text-sm mt-1">Push code to your separate public and admin GitHub repositories.</p>
                 </div>
 
-                <GoldCard className="p-6 space-y-4">
-                  <div className="rounded-xl p-4 border" style={{ background: "rgba(201,168,76,0.05)", borderColor: "rgba(201,168,76,0.15)" }}>
-                    <p className="text-sm font-semibold" style={{ color: GOLD }}>🔑 Token detected</p>
-                    <p className="text-xs text-white/40 mt-1">GITHUB_PERSONAL_ACCESS_TOKEN secret will be used to push to:<br />
-                      <span className="text-white/60">github.com/daviddan-241/Hannah-brooks-love</span></p>
-                  </div>
-                  <button onClick={pushToGitHub} disabled={githubPushing}
-                    className="flex items-center gap-2 h-12 px-6 rounded-xl font-bold text-sm border border-purple-500/30 text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 disabled:opacity-40 transition-colors">
-                    <Github className="w-5 h-5" />{githubPushing ? "Pushing to GitHub…" : "Push to GitHub Now"}
-                  </button>
-                  {githubResult && (
-                    <div className={`rounded-xl p-4 text-sm border ${githubResult.success ? "bg-green-500/5 border-green-500/20 text-green-400" : "bg-red-500/5 border-red-500/20 text-red-400"}`}>
-                      {githubResult.success
-                        ? <div className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Successfully pushed!</div>
-                        : <div><div className="flex items-center gap-2 mb-1"><AlertCircle className="w-4 h-4" /> Push failed</div><p className="text-xs opacity-70">{githubResult.error}</p></div>}
+                <div className="rounded-xl px-4 py-3 flex items-center gap-3 border" style={{ background: "rgba(201,168,76,0.05)", borderColor: "rgba(201,168,76,0.2)" }}>
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />
+                  <p className="text-sm text-white/60"><span className="font-bold" style={{ color: GOLD }}>GITHUB_PERSONAL_ACCESS_TOKEN</span> detected — ready to push to both repos.</p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* ── Public Fan App Repo ── */}
+                  <GoldCard className="p-6 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.25)" }}>
+                        <Globe className="w-5 h-5 text-sky-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white">Public Fan App</h3>
+                        <a href="https://github.com/daviddan-241/Hannah-brooks-love" target="_blank" rel="noreferrer"
+                          className="text-xs flex items-center gap-1 mt-0.5 hover:underline" style={{ color: "rgba(56,189,248,0.8)" }}>
+                          github.com/daviddan-241/Hannah-brooks-love <ExternalLink size={10} />
+                        </a>
+                      </div>
                     </div>
-                  )}
+                    <p className="text-xs text-white/35 leading-relaxed">
+                      Fan platform (port 5000): Home, Feed, Messages, Calls, Boutique, Members — all public-facing pages.
+                    </p>
+                    <button onClick={() => pushToGitHub("public")} disabled={githubPushing !== null}
+                      className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-xl font-bold text-sm transition-all disabled:opacity-40"
+                      style={githubPushing === "public"
+                        ? { background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.3)", color: "rgb(56,189,248)" }
+                        : { background: "rgba(56,189,248,0.12)", border: "1px solid rgba(56,189,248,0.25)", color: "rgb(147,218,250)" }}>
+                      <Github className="w-4 h-4" />
+                      {githubPushing === "public" ? "Pushing…" : "Push Public App"}
+                    </button>
+                    {githubResult?.target === "public" && (
+                      <div className={`rounded-xl p-3 text-sm border flex items-start gap-2 ${githubResult.success ? "bg-green-500/5 border-green-500/20 text-green-400" : "bg-red-500/5 border-red-500/20 text-red-400"}`}>
+                        {githubResult.success
+                          ? <><CheckCircle size={14} className="mt-0.5 shrink-0" /><span>Pushed to <strong>Hannah-brooks-love</strong>!</span></>
+                          : <><AlertCircle size={14} className="mt-0.5 shrink-0" /><span className="text-xs">{githubResult.error}</span></>}
+                      </div>
+                    )}
+                  </GoldCard>
+
+                  {/* ── Admin & AI Studio Repo ── */}
+                  <GoldCard className="p-6 space-y-4" style={{ borderColor: "rgba(201,168,76,0.25)" }}>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.3)" }}>
+                        <Brain className="w-5 h-5" style={{ color: GOLD }} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white">Admin &amp; AI Studio</h3>
+                        <a href="https://github.com/daviddan-241/Admin" target="_blank" rel="noreferrer"
+                          className="text-xs flex items-center gap-1 mt-0.5 hover:underline" style={{ color: "rgba(201,168,76,0.8)" }}>
+                          github.com/daviddan-241/Admin <ExternalLink size={10} />
+                        </a>
+                      </div>
+                    </div>
+                    <p className="text-xs text-white/35 leading-relaxed">
+                      Creator portal + AI Persona Studio: admin dashboard, chat control, analytics, personas, training, social sync.
+                    </p>
+                    <button onClick={() => pushToGitHub("admin")} disabled={githubPushing !== null}
+                      className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-xl font-bold text-sm transition-all disabled:opacity-40"
+                      style={githubPushing === "admin"
+                        ? { background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.4)", color: GOLD }
+                        : { background: GOLD_GRAD, color: "#000" }}>
+                      <Github className="w-4 h-4" />
+                      {githubPushing === "admin" ? "Pushing…" : "Push Admin & AI Studio"}
+                    </button>
+                    {githubResult?.target === "admin" && (
+                      <div className={`rounded-xl p-3 text-sm border flex items-start gap-2 ${githubResult.success ? "bg-green-500/5 border-green-500/20 text-green-400" : "bg-red-500/5 border-red-500/20 text-red-400"}`}>
+                        {githubResult.success
+                          ? <><CheckCircle size={14} className="mt-0.5 shrink-0" /><span>Pushed to <strong>Admin</strong>!</span></>
+                          : <><AlertCircle size={14} className="mt-0.5 shrink-0" /><span className="text-xs">{githubResult.error}</span></>}
+                      </div>
+                    )}
+                  </GoldCard>
+                </div>
+
+                <GoldCard className="p-5">
+                  <h4 className="font-semibold text-white mb-3 text-sm">Push Both at Once</h4>
+                  <p className="text-xs text-white/35 mb-4">Commits and pushes all current code to both repositories in sequence.</p>
+                  <button
+                    onClick={async () => { await pushToGitHub("public"); await pushToGitHub("admin"); }}
+                    disabled={githubPushing !== null}
+                    className="flex items-center gap-2 h-11 px-6 rounded-xl font-bold text-sm border border-white/10 text-white/60 hover:text-white hover:border-white/20 disabled:opacity-40 transition-all">
+                    <Github className="w-4 h-4" /> Push to Both Repos
+                  </button>
                 </GoldCard>
               </div>
             )}

@@ -221,34 +221,44 @@ router.post("/social/sync/instagram", adminAuth, async (req, res): Promise<void>
   } catch (e: unknown) { res.status(500).json({ error: `Instagram sync failed: ${e instanceof Error ? e.message : String(e)}` }); }
 });
 
-// ── GitHub push ───────────────────────────────────────────────────────────
-router.post("/social/github/push", adminAuth, async (_req, res): Promise<void> => {
+// ── GitHub push (dual-repo) ────────────────────────────────────────────────
+// target: "public"  → daviddan-241/Hannah-brooks-love
+// target: "admin"   → daviddan-241/Admin
+router.post("/social/github/push", adminAuth, async (req, res): Promise<void> => {
   const { exec } = await import("child_process");
   const { promisify } = await import("util");
   const execAsync = promisify(exec);
+
+  const target = ((req.body as { target?: string }).target) || "public";
+  const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN || "";
+
+  if (!token) {
+    res.status(400).json({
+      error: "GITHUB_PERSONAL_ACCESS_TOKEN not set. Add it in Replit Secrets.",
+    });
+    return;
+  }
+
+  const repoMap: Record<string, string> = {
+    public: `https://${token}@github.com/daviddan-241/Hannah-brooks-love.git`,
+    admin:  `https://${token}@github.com/daviddan-241/Admin.git`,
+  };
+
+  const remote = repoMap[target];
+  if (!remote) {
+    res.status(400).json({ error: `Unknown target "${target}". Use "public" or "admin".` });
+    return;
+  }
 
   try {
     await execAsync('git config user.email "admin@hannahbrooks.com"');
     await execAsync('git config user.name "Hannah Brooks Admin"');
     await execAsync("git add -A");
     const timestamp = new Date().toISOString();
-    await execAsync(`git commit -m "Auto-sync update ${timestamp}" --allow-empty`);
-
-    // Build remote: prefer GITHUB_REMOTE env, else auto-construct from GITHUB_PERSONAL_ACCESS_TOKEN
-    const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN || "";
-    const remote = process.env.GITHUB_REMOTE ||
-      (token ? `https://${token}@github.com/daviddan-241/Hannah-brooks-love.git` : "");
-
-    if (!remote) {
-      res.status(400).json({
-        error: "GitHub token not set.",
-        setup: "GITHUB_PERSONAL_ACCESS_TOKEN is available in Replit secrets — ensure it has repo scope.",
-      });
-      return;
-    }
+    await execAsync(`git commit -m "Auto-sync [${target}] ${timestamp}" --allow-empty`);
 
     const { stdout, stderr } = await execAsync(`git push "${remote}" HEAD:main --force`);
-    res.json({ success: true, stdout, stderr, timestamp });
+    res.json({ success: true, target, stdout, stderr, timestamp });
   } catch (e: unknown) {
     const err = e instanceof Error ? e.message : String(e);
     res.status(500).json({ error: `Git push failed: ${err}`, stdout: (e as any).stdout, stderr: (e as any).stderr });
