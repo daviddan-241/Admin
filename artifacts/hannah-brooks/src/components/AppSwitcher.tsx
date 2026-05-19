@@ -4,34 +4,13 @@ const GOLD = "#c9a84c";
 const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)";
 
 function getAppUrls() {
-  const { protocol, hostname, port } = window.location;
-  const currentPort = port || "5000";
-
-  // Replit dev domain: format is  WORKSPACE-PORT.CLUSTER.replit.dev
-  if (hostname.includes(".replit.dev")) {
-    const studioHost = hostname.replace(`-${currentPort}.`, "-3000.");
-    return {
-      fan:     `${protocol}//${hostname}`,
-      admin:   `${protocol}//${hostname}/admin`,
-      persona: `${protocol}//${studioHost}`,
-    };
-  }
-
-  // repl.co legacy domain (port 5000 is the default, no port in URL)
-  if (hostname.endsWith(".repl.co")) {
-    return {
-      fan:     `${protocol}//${hostname}`,
-      admin:   `${protocol}//${hostname}/admin`,
-      persona: `${protocol}//${hostname}:3000`,
-    };
-  }
-
-  // Local development
+  const { protocol, hostname } = window.location;
   const base = `${protocol}//${hostname}`;
   return {
-    fan:     `${base}:5000`,
-    admin:   `${base}:5000/admin`,
-    persona: `${base}:3000`,
+    fan:     base + "/",
+    profile: base + "/profile",
+    admin:   base + "/admin",
+    studio:  base + "/studio",
   };
 }
 
@@ -39,26 +18,34 @@ const APPS = [
   {
     key: "fan",
     label: "Fan Platform",
-    sub: "Public site · Hannah Brooks",
+    sub: "Home · Feed · Chat · Boutique",
     icon: "🌐",
     color: "#38bdf8",
     external: false,
   },
   {
-    key: "admin",
-    label: "Creator Admin",
-    sub: "Private portal · same tab",
-    icon: "🔐",
+    key: "profile",
+    label: "Hannah's Profile",
+    sub: "Public profile · Posts · VIP",
+    icon: "👑",
     color: GOLD,
     external: false,
   },
   {
-    key: "persona",
+    key: "admin",
+    label: "Creator Admin",
+    sub: "Private portal · password protected",
+    icon: "🔐",
+    color: "#f59e0b",
+    external: false,
+  },
+  {
+    key: "studio",
     label: "AI Persona Studio",
-    sub: "AI Chat, Personas, Training",
+    sub: "Embedded · AI Chat · Training",
     icon: "🤖",
     color: "#c084fc",
-    external: true,
+    external: false,
   },
 ] as const;
 
@@ -66,8 +53,12 @@ export default function AppSwitcher() {
   const [open, setOpen] = useState(false);
   const urls = getAppUrls();
 
-  const isFan   = !window.location.pathname.startsWith("/admin");
-  const isAdmin =  window.location.pathname.startsWith("/admin");
+  const currentPath = window.location.pathname;
+
+  function isHere(key: string) {
+    if (key === "fan") return currentPath === "/" || (!currentPath.startsWith("/admin") && !currentPath.startsWith("/profile") && !currentPath.startsWith("/studio") && !currentPath.startsWith("/messages") && !currentPath.startsWith("/feed") && !currentPath.startsWith("/calls") && !currentPath.startsWith("/store") && !currentPath.startsWith("/members"));
+    return currentPath.startsWith(`/${key}`);
+  }
 
   return (
     <div className="fixed bottom-5 right-5 z-[9999] flex flex-col items-end gap-2">
@@ -75,7 +66,7 @@ export default function AppSwitcher() {
         <div
           className="rounded-2xl shadow-2xl overflow-hidden"
           style={{
-            width: 252,
+            width: 260,
             background: "rgba(8,7,5,0.98)",
             border: "1px solid rgba(201,168,76,0.22)",
             backdropFilter: "blur(24px)",
@@ -84,20 +75,19 @@ export default function AppSwitcher() {
           {/* header */}
           <div className="px-4 pt-3.5 pb-2.5 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
             <p className="text-white font-bold text-sm">Hannah Brooks</p>
-            <p className="text-white/25 text-[11px]">Switch experience</p>
+            <p className="text-white/25 text-[11px]">Switch experience · all on port 5000</p>
           </div>
 
           {/* app list */}
           <div className="p-2 space-y-1">
             {APPS.map((app) => {
               const url  = urls[app.key as keyof typeof urls];
-              const here = (app.key === "fan" && isFan) || (app.key === "admin" && isAdmin);
+              const here = isHere(app.key);
 
               return (
                 <a
                   key={app.key}
                   href={url}
-                  target={app.external ? "_blank" : "_self"}
                   rel="noreferrer"
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/[0.04] no-underline"
@@ -124,22 +114,16 @@ export default function AppSwitcher() {
                       HERE
                     </span>
                   )}
-                  {app.external && !here && (
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" className="shrink-0 opacity-30">
-                      <path d="M2 10L10 2M10 2H5M10 2V7" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  )}
                 </a>
               );
             })}
           </div>
 
-          {/* port hint */}
-          <div className="mx-2 mb-2 px-3 py-1.5 rounded-xl text-center" style={{ background: "rgba(192,132,252,0.06)", border: "1px solid rgba(192,132,252,0.1)" }}>
+          {/* connection hint */}
+          <div className="mx-2 mb-2 px-3 py-1.5 rounded-xl text-center" style={{ background: "rgba(201,168,76,0.04)", border: "1px solid rgba(201,168,76,0.1)" }}>
             <p className="text-[10px] text-white/25">
-              AI Studio also accessible via{" "}
-              <span className="font-bold" style={{ color: "rgba(192,132,252,0.55)" }}>port 3000</span>
-              {" "}in the preview pane
+              All 4 experiences accessible from{" "}
+              <span className="font-bold" style={{ color: "rgba(201,168,76,0.5)" }}>port 5000</span>
             </p>
           </div>
         </div>

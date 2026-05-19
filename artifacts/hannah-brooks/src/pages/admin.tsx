@@ -21,7 +21,7 @@ const logoHB = `${import.meta.env.BASE_URL}logo-hb.png`;
 const GOLD = "#c9a84c";
 const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)";
 
-type Tab = "dashboard" | "earnings" | "chat" | "calls" | "requests" | "tips" | "feed" | "social" | "github" | "settings" | "ai-chat" | "personas" | "training" | "analytics";
+type Tab = "dashboard" | "earnings" | "chat" | "calls" | "requests" | "tips" | "feed" | "social" | "github" | "settings" | "ai-chat" | "personas" | "training" | "analytics" | "ai-generate";
 
 type ChatSession = { id: number; fanName: string; fanEmail: string; fanAvatarUrl?: string | null; freeUsed: number; lastMessageAt: string | null; createdAt: string; lastMessage?: { message: string; senderType: string } | null; unreadCount: number; };
 type ChatMessage = { id: number; sessionId: number; senderType: "fan" | "hannah"; message: string; amountPaid: number; isRead: boolean; createdAt: string; };
@@ -258,6 +258,29 @@ export default function Admin() {
   const [pwInput, setPwInput] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [tab, setTab] = useState<Tab>("dashboard");
+
+  // ── AI Generate state ───────────────────────────────────────────────────
+  const [aiGenPrompt, setAiGenPrompt] = useState("");
+  const [aiGenSize, setAiGenSize] = useState("1024x1024");
+  const [aiGenStyle, setAiGenStyle] = useState("vivid");
+  const [aiGenPublish, setAiGenPublish] = useState(false);
+  const [aiGenVip, setAiGenVip] = useState(false);
+  const [aiGenCaption, setAiGenCaption] = useState("");
+  const [aiGenLoading, setAiGenLoading] = useState(false);
+  const [aiGenResult, setAiGenResult] = useState<{ imageUrl?: string; revisedPrompt?: string; status?: string; message?: string } | null>(null);
+  const [aiVideoPrompt, setAiVideoPrompt] = useState("");
+  const [aiVideoLoading, setAiVideoLoading] = useState(false);
+  const [aiVideoResult, setAiVideoResult] = useState<{ imageUrl?: string; taskId?: string; status?: string; message?: string; provider?: string } | null>(null);
+  const [aiSubTab, setAiSubTab] = useState<"image" | "video" | "process" | "voice">("image");
+  const [aiProcessFile, setAiProcessFile] = useState<File | null>(null);
+  const [aiProcessOp, setAiProcessOp] = useState("bg-remove");
+  const [aiProcessPrompt, setAiProcessPrompt] = useState("");
+  const [aiProcessLoading, setAiProcessLoading] = useState(false);
+  const [aiProcessResult, setAiProcessResult] = useState<{ fileUrl?: string; imageUrl?: string; taskId?: string; status?: string; message?: string; availableOps?: { id: string; label: string; icon: string }[] } | null>(null);
+  const [voiceText, setVoiceText] = useState("");
+  const [voiceLoading, setVoiceLoading] = useState(false);
+  const [voiceResult, setVoiceResult] = useState<{ audioUrl?: string; status?: string; message?: string } | null>(null);
+  const aiProcessFileRef = useRef<HTMLInputElement>(null);
 
   // Data
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
@@ -669,7 +692,81 @@ export default function Admin() {
     { id: "analytics", label: "Analytics", icon: <BarChart2 className="w-[18px] h-[18px]" /> },
     { id: "personas", label: "Personas", icon: <Users className="w-[18px] h-[18px]" /> },
     { id: "training", label: "Training", icon: <Upload className="w-[18px] h-[18px]" /> },
+    { id: "ai-generate", label: "AI Create", icon: <ImagePlus className="w-[18px] h-[18px]" /> },
   ];
+
+  const generateImage = async () => {
+    if (!aiGenPrompt.trim()) { toast({ title: "Enter a prompt first", variant: "destructive" }); return; }
+    setAiGenLoading(true); setAiGenResult(null);
+    try {
+      const res = await fetch(`${API}/ai/generate-image`, {
+        method: "POST", headers: { "Content-Type": "application/json", ...h },
+        body: JSON.stringify({ prompt: aiGenPrompt, size: aiGenSize, style: aiGenStyle, quality: "hd", publishToFeed: aiGenPublish, isVip: aiGenVip, caption: aiGenCaption || aiGenPrompt }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setAiGenResult(data);
+      toast({ title: aiGenPublish ? "Image generated & posted to feed!" : "Image generated!" });
+      if (aiGenPublish) fetchAll();
+    } catch (e: unknown) {
+      toast({ title: "Generation failed", description: e instanceof Error ? e.message : "Error", variant: "destructive" });
+    }
+    setAiGenLoading(false);
+  };
+
+  const generateVideo = async () => {
+    if (!aiVideoPrompt.trim()) { toast({ title: "Enter a video prompt", variant: "destructive" }); return; }
+    setAiVideoLoading(true); setAiVideoResult(null);
+    try {
+      const res = await fetch(`${API}/ai/generate-video`, {
+        method: "POST", headers: { "Content-Type": "application/json", ...h },
+        body: JSON.stringify({ prompt: aiVideoPrompt, imageUrl: aiGenResult?.imageUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setAiVideoResult(data);
+      toast({ title: data.status === "generating" ? "Video generating via RunwayML!" : data.status === "image_preview" ? "Preview frame generated!" : "Video queued!" });
+    } catch (e: unknown) {
+      toast({ title: "Video generation failed", description: e instanceof Error ? e.message : "Error", variant: "destructive" });
+    }
+    setAiVideoLoading(false);
+  };
+
+  const processMedia = async () => {
+    if (!aiProcessFile) { toast({ title: "Upload a file first", variant: "destructive" }); return; }
+    setAiProcessLoading(true); setAiProcessResult(null);
+    try {
+      const isVideo = aiProcessFile.type.startsWith("video");
+      const endpoint = isVideo ? "/ai/process-video" : "/ai/process-image";
+      const fd = new FormData();
+      fd.append(isVideo ? "video" : "image", aiProcessFile);
+      fd.append("operation", aiProcessOp);
+      fd.append("prompt", aiProcessPrompt);
+      const res = await fetch(`${API}${endpoint}`, { method: "POST", headers: h, body: fd });
+      const data = await res.json();
+      setAiProcessResult(data);
+      toast({ title: data.status === "needs_gpu" ? "File uploaded — configure GPU_WORKER_URL to process" : data.status === "completed" ? "Processing complete!" : "Queued for processing" });
+    } catch (e: unknown) {
+      toast({ title: "Processing failed", description: e instanceof Error ? e.message : "Error", variant: "destructive" });
+    }
+    setAiProcessLoading(false);
+  };
+
+  const generateVoice = async () => {
+    if (!voiceText.trim()) { toast({ title: "Enter text first", variant: "destructive" }); return; }
+    setVoiceLoading(true); setVoiceResult(null);
+    try {
+      const fd = new FormData(); fd.append("text", voiceText);
+      const res = await fetch(`${API}/ai/voice-clone`, { method: "POST", headers: h, body: fd });
+      const data = await res.json();
+      setVoiceResult(data);
+      if (data.audioUrl) toast({ title: "Voice generated!" });
+      else toast({ title: "Voice config needed", description: data.message });
+    } catch (e: unknown) {
+      toast({ title: "Voice generation failed", description: e instanceof Error ? e.message : "Error", variant: "destructive" });
+    }
+    setVoiceLoading(false);
+  };
 
   const syncInstagram = async () => {
     setSyncingInstagram(true);
@@ -1522,6 +1619,25 @@ export default function Admin() {
                       </SF>
                     </SettingsSection>
 
+                    <SettingsSection title="AI Keys" icon={<Brain className="w-5 h-5" style={{ color: GOLD }} />}
+                      desc="Power the AI Create tab — image generation, video, voice synthesis. Configure the services you use.">
+                      <SF label="OpenAI API Key" hint="For DALL-E 3 image generation — platform.openai.com">
+                        <SecretInput defaultValue={rawSecrets.openaiApiKey || ""} onSave={v => saveSettings({ openaiApiKey: v })} placeholder="sk-..." />
+                      </SF>
+                      <SF label="RunwayML API Key" hint="For AI video generation — app.runwayml.com">
+                        <SecretInput defaultValue={rawSecrets.runwaymlApiKey || ""} onSave={v => saveSettings({ runwaymlApiKey: v })} placeholder="key_..." />
+                      </SF>
+                      <SF label="ElevenLabs API Key" hint="For voice synthesis — elevenlabs.io">
+                        <SecretInput defaultValue={rawSecrets.elevenlabsApiKey || ""} onSave={v => saveSettings({ elevenlabsApiKey: v })} placeholder="Your ElevenLabs key" />
+                      </SF>
+                      <SF label="ElevenLabs Voice ID" hint="Your cloned voice ID from ElevenLabs dashboard">
+                        <Input defaultValue={String(platformSettings.elevenlabsVoiceId || "")} onBlur={e => saveSettings({ elevenlabsVoiceId: e.target.value })} placeholder="21m00Tcm4TlvDq8ikWAM" className={IC} />
+                      </SF>
+                      <SF label="GPU Worker URL" hint="RunPod / Vast.ai endpoint for face swap, clothes change, voice convert, enhance">
+                        <Input defaultValue={String(platformSettings.gpuWorkerUrl || "")} onBlur={e => saveSettings({ gpuWorkerUrl: e.target.value })} placeholder="https://your-worker.runpod.net" className={IC} />
+                      </SF>
+                    </SettingsSection>
+
                     <SettingsSection title="Profile & Links" icon={<User className="w-5 h-5" style={{ color: GOLD }} />}
                       desc="Your public profile information shown on the homepage.">
                       <SF label="Bio">
@@ -2138,6 +2254,333 @@ export default function Admin() {
                         </button>
                       </div>
                     </GoldCard>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ─── AI CREATE ────────────────────────────────────── */}
+            {tab === "ai-generate" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-serif font-bold text-white flex items-center gap-2">
+                    <Sparkles className="w-6 h-6" style={{ color: GOLD }} /> AI Content Creator
+                  </h2>
+                  <p className="text-white/30 text-sm mt-1">Generate images &amp; videos, process uploaded media, clone your voice</p>
+                </div>
+
+                {/* Sub-tab navigation */}
+                <div className="flex gap-2 flex-wrap">
+                  {([
+                    { id: "image" as const, label: "🎨 Image Gen", desc: "DALL-E 3" },
+                    { id: "video" as const, label: "🎬 Video Gen", desc: "RunwayML" },
+                    { id: "process" as const, label: "✨ AI Edit", desc: "Upload + prompt" },
+                    { id: "voice" as const, label: "🎙️ Voice", desc: "ElevenLabs" },
+                  ] as const).map(st => (
+                    <button key={st.id} onClick={() => setAiSubTab(st.id)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                      style={aiSubTab === st.id
+                        ? { background: GOLD_GRAD, color: "#000" }
+                        : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                      {st.label} <span className="text-[10px] opacity-60">{st.desc}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* ── Image Generation ── */}
+                {aiSubTab === "image" && (
+                  <div className="space-y-4">
+                    <GoldCard className="p-5 space-y-4">
+                      <h3 className="font-semibold text-white flex items-center gap-2">
+                        <ImagePlus className="w-4 h-4" style={{ color: GOLD }} /> Generate Image with DALL-E 3
+                      </h3>
+                      <div>
+                        <label className="text-xs text-white/40 mb-2 block">Describe the image you want</label>
+                        <textarea value={aiGenPrompt} onChange={e => setAiGenPrompt(e.target.value)}
+                          rows={3} placeholder="A stunning portrait of a beautiful woman in elegant lingerie, soft studio lighting, professional photography…"
+                          className="w-full bg-black/50 border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none resize-y placeholder:text-white/20" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-white/40 mb-1.5 block">Size</label>
+                          <select value={aiGenSize} onChange={e => setAiGenSize(e.target.value)}
+                            className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
+                            <option value="1024x1024">Square (1:1)</option>
+                            <option value="1792x1024">Wide (16:9)</option>
+                            <option value="1024x1792">Portrait (9:16)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-white/40 mb-1.5 block">Style</label>
+                          <select value={aiGenStyle} onChange={e => setAiGenStyle(e.target.value)}
+                            className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
+                            <option value="vivid">Vivid (dramatic)</option>
+                            <option value="natural">Natural (realistic)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={aiGenPublish} onChange={e => setAiGenPublish(e.target.checked)} className="w-4 h-4 rounded" />
+                          <span className="text-sm text-white/70">Post to feed</span>
+                        </label>
+                        {aiGenPublish && (
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={aiGenVip} onChange={e => setAiGenVip(e.target.checked)} className="w-4 h-4 rounded" />
+                            <span className="text-sm text-white/70">VIP only (adult)</span>
+                          </label>
+                        )}
+                      </div>
+                      {aiGenPublish && (
+                        <div>
+                          <label className="text-xs text-white/40 mb-1.5 block">Feed caption (optional)</label>
+                          <Input value={aiGenCaption} onChange={e => setAiGenCaption(e.target.value)}
+                            placeholder="Caption…" className="bg-black/50 border-white/10 text-white rounded-xl placeholder:text-white/20" />
+                        </div>
+                      )}
+                      <button onClick={generateImage} disabled={aiGenLoading || !aiGenPrompt.trim()}
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-black disabled:opacity-40"
+                        style={{ background: GOLD_GRAD, boxShadow: "0 4px 20px rgba(201,168,76,0.3)" }}>
+                        <Sparkles className="w-4 h-4" />{aiGenLoading ? "Generating…" : "Generate Image"}
+                      </button>
+                    </GoldCard>
+                    {aiGenLoading && (
+                      <div className="flex items-center gap-3 text-white/50 text-sm">
+                        <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                        Generating with DALL-E 3… (usually 10–20 seconds)
+                      </div>
+                    )}
+                    {aiGenResult?.imageUrl && (
+                      <GoldCard className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-white">Generated Image</h3>
+                          <a href={aiGenResult.imageUrl} target="_blank" rel="noreferrer"
+                            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-white/10 text-white/50 hover:text-white transition-colors">
+                            <ExternalLink className="w-3.5 h-3.5" /> Full size
+                          </a>
+                        </div>
+                        <img src={aiGenResult.imageUrl} alt="AI Generated" className="w-full rounded-xl object-cover max-h-[500px]" />
+                        {aiGenResult.revisedPrompt && (
+                          <p className="text-xs text-white/30 leading-relaxed">
+                            <span className="text-white/50 font-medium">DALL-E revised: </span>{aiGenResult.revisedPrompt}
+                          </p>
+                        )}
+                        {aiGenResult.status === "image_published" && (
+                          <div className="flex items-center gap-2 text-sm text-green-400">
+                            <CheckCircle className="w-4 h-4" /> Published to feed
+                          </div>
+                        )}
+                        <div className="flex gap-2 flex-wrap">
+                          <button onClick={() => { setAiSubTab("video"); setTimeout(() => generateVideo(), 100); }}
+                            disabled={aiVideoLoading}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-purple-500/30 text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 transition-colors disabled:opacity-40">
+                            <Video className="w-4 h-4" /> Animate →
+                          </button>
+                        </div>
+                      </GoldCard>
+                    )}
+                    {aiGenResult?.message && !aiGenResult.imageUrl && (
+                      <div className="rounded-xl p-4 border border-amber-500/20 bg-amber-500/5 text-sm text-amber-300">{aiGenResult.message}</div>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Video Generation ── */}
+                {aiSubTab === "video" && (
+                  <div className="space-y-4">
+                    <GoldCard className="p-5 space-y-4">
+                      <h3 className="font-semibold text-white flex items-center gap-2">
+                        <Video className="w-4 h-4" style={{ color: GOLD }} /> Generate Video
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(192,132,252,0.1)", color: "#c084fc", border: "1px solid rgba(192,132,252,0.2)" }}>RunwayML Gen-3</span>
+                      </h3>
+                      <div>
+                        <label className="text-xs text-white/40 mb-2 block">Describe the video scene or motion</label>
+                        <textarea value={aiVideoPrompt} onChange={e => setAiVideoPrompt(e.target.value)}
+                          rows={3} placeholder="A beautiful woman dancing in slow motion, golden hour lighting, cinematic, bokeh background…"
+                          className="w-full bg-black/50 border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none resize-y placeholder:text-white/20" />
+                      </div>
+                      {aiGenResult?.imageUrl && (
+                        <div className="flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5">
+                          <img src={aiGenResult.imageUrl} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-white">Using generated image as starting frame</p>
+                            <p className="text-xs text-white/30">RunwayML will animate it with your prompt</p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="p-3 rounded-xl text-xs text-white/40 leading-relaxed" style={{ background: "rgba(192,132,252,0.04)", border: "1px solid rgba(192,132,252,0.12)" }}>
+                        <strong className="text-purple-300">Requires: </strong>Add <code className="bg-black/40 px-1 rounded">RUNWAYML_API_KEY</code> or <code className="bg-black/40 px-1 rounded">GPU_WORKER_URL</code> in Settings → AI Keys. Without these a preview image is generated.
+                      </div>
+                      <button onClick={generateVideo} disabled={aiVideoLoading || !aiVideoPrompt.trim()}
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm disabled:opacity-40"
+                        style={{ background: "linear-gradient(135deg,#7c3aed,#a855f7)", color: "white", boxShadow: "0 4px 20px rgba(139,92,246,0.3)" }}>
+                        <Video className="w-4 h-4" />{aiVideoLoading ? "Generating…" : "Generate Video"}
+                      </button>
+                    </GoldCard>
+                    {aiVideoLoading && (
+                      <div className="flex items-center gap-3 text-white/50 text-sm">
+                        <div className="w-4 h-4 border-2 border-purple-500/30 border-t-purple-400 rounded-full animate-spin" />
+                        Generating video… usually 30–90 seconds with RunwayML
+                      </div>
+                    )}
+                    {aiVideoResult && (
+                      <GoldCard className="p-4 space-y-3">
+                        {aiVideoResult.imageUrl && (
+                          <>
+                            <h3 className="font-semibold text-white">
+                              {aiVideoResult.status === "image_preview" ? "Preview Frame (RunwayML key needed for video)" : "Generated"}
+                            </h3>
+                            <img src={aiVideoResult.imageUrl} alt="Preview" className="w-full rounded-xl object-cover max-h-[400px]" />
+                          </>
+                        )}
+                        {aiVideoResult.message && (
+                          <div className="text-xs text-amber-300 p-3 rounded-xl border border-amber-500/20 bg-amber-500/5">{aiVideoResult.message}</div>
+                        )}
+                        {aiVideoResult.taskId && (
+                          <div className="text-xs text-green-300">
+                            Task: <code className="bg-black/40 px-1 rounded">{aiVideoResult.taskId}</code>
+                            {aiVideoResult.provider === "runwayml" && " · Check RunwayML dashboard"}
+                          </div>
+                        )}
+                      </GoldCard>
+                    )}
+                  </div>
+                )}
+
+                {/* ── AI Edit / Process ── */}
+                {aiSubTab === "process" && (
+                  <div className="space-y-4">
+                    <GoldCard className="p-5 space-y-4">
+                      <h3 className="font-semibold text-white flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" style={{ color: GOLD }} /> AI Media Editor
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {[
+                          { id: "face-swap", label: "Face Swap", icon: "😊", gpu: true },
+                          { id: "clothes-change", label: "Change Clothes", icon: "👗", gpu: true },
+                          { id: "bg-remove", label: "Remove BG", icon: "✂️", gpu: true },
+                          { id: "enhance", label: "AI Enhance", icon: "✨", gpu: true },
+                          { id: "voice-convert", label: "Voice Convert", icon: "🎙️", gpu: true },
+                          { id: "variation", label: "Variation", icon: "🎨", gpu: false },
+                        ].map(op => (
+                          <button key={op.id} onClick={() => setAiProcessOp(op.id)}
+                            className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border transition-all text-left"
+                            style={aiProcessOp === op.id
+                              ? { background: "rgba(201,168,76,0.15)", borderColor: "rgba(201,168,76,0.4)", color: GOLD }
+                              : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}>
+                            <span className="text-base">{op.icon}</span>
+                            <span className="flex-1">{op.label}</span>
+                            {op.gpu && <span className="text-[9px] opacity-50">GPU</span>}
+                          </button>
+                        ))}
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/40 mb-2 block">Upload photo or video</label>
+                        <input ref={aiProcessFileRef} type="file" accept="image/*,video/*" className="hidden"
+                          onChange={e => { const f = e.target.files?.[0]; if (f) setAiProcessFile(f); }} />
+                        <button onClick={() => aiProcessFileRef.current?.click()}
+                          className="w-full h-24 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 text-sm text-white/30 hover:text-white/60 transition-colors"
+                          style={{ borderColor: aiProcessFile ? "rgba(201,168,76,0.4)" : "rgba(255,255,255,0.1)", background: aiProcessFile ? "rgba(201,168,76,0.04)" : "transparent" }}>
+                          {aiProcessFile ? (
+                            <>
+                              <CheckCircle className="w-6 h-6" style={{ color: GOLD }} />
+                              <span style={{ color: GOLD }}>{aiProcessFile.name} ({Math.round(aiProcessFile.size / 1024)}KB)</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-6 h-6" />
+                              <span>Click to upload photo or video</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      {["face-swap", "clothes-change"].includes(aiProcessOp) && (
+                        <div>
+                          <label className="text-xs text-white/40 mb-1.5 block">Describe the change (optional)</label>
+                          <Input value={aiProcessPrompt} onChange={e => setAiProcessPrompt(e.target.value)}
+                            placeholder={aiProcessOp === "clothes-change" ? "e.g. elegant black lace dress, form-fitting" : "e.g. keep same expression, smooth lighting"}
+                            className="bg-black/50 border-white/10 text-white rounded-xl placeholder:text-white/20" />
+                        </div>
+                      )}
+                      <div className="p-3 rounded-xl text-xs text-white/40 leading-relaxed" style={{ background: "rgba(201,168,76,0.04)", border: "1px solid rgba(201,168,76,0.1)" }}>
+                        <strong className="text-amber-300">GPU required for most ops: </strong>
+                        Set <code className="bg-black/40 px-1 rounded">GPU_WORKER_URL</code> in Settings → AI Keys. Image Variation works with OpenAI key.
+                      </div>
+                      <button onClick={processMedia} disabled={aiProcessLoading || !aiProcessFile}
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-black disabled:opacity-40"
+                        style={{ background: GOLD_GRAD, boxShadow: "0 4px 20px rgba(201,168,76,0.3)" }}>
+                        <Sparkles className="w-4 h-4" />
+                        {aiProcessLoading ? "Processing…" : `Apply ${aiProcessOp.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase())}`}
+                      </button>
+                    </GoldCard>
+                    {aiProcessResult && (
+                      <GoldCard className="p-4 space-y-3">
+                        {aiProcessResult.imageUrl && <img src={aiProcessResult.imageUrl} alt="Processed" className="w-full rounded-xl max-h-[400px] object-contain" />}
+                        {aiProcessResult.fileUrl && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <CheckCircle className="w-4 h-4 text-green-400" />
+                            <a href={aiProcessResult.fileUrl} target="_blank" rel="noreferrer" className="text-green-300 hover:underline">View uploaded file</a>
+                          </div>
+                        )}
+                        {aiProcessResult.message && (
+                          <div className="text-xs p-3 rounded-xl border" style={{
+                            color: aiProcessResult.status === "needs_gpu" ? "#fbbf24" : "#86efac",
+                            borderColor: aiProcessResult.status === "needs_gpu" ? "rgba(251,191,36,0.2)" : "rgba(134,239,172,0.2)",
+                            background: aiProcessResult.status === "needs_gpu" ? "rgba(251,191,36,0.04)" : "rgba(134,239,172,0.04)",
+                          }}>{aiProcessResult.message}</div>
+                        )}
+                      </GoldCard>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Voice Synthesis ── */}
+                {aiSubTab === "voice" && (
+                  <div className="space-y-4">
+                    <GoldCard className="p-5 space-y-4">
+                      <h3 className="font-semibold text-white flex items-center gap-2">
+                        <Mic className="w-4 h-4" style={{ color: GOLD }} /> Voice Synthesis
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(52,211,153,0.1)", color: "#34d399", border: "1px solid rgba(52,211,153,0.2)" }}>ElevenLabs / GPU</span>
+                      </h3>
+                      <div>
+                        <label className="text-xs text-white/40 mb-2 block">Text to speak in your voice</label>
+                        <textarea value={voiceText} onChange={e => setVoiceText(e.target.value)}
+                          rows={4} placeholder="Hey darling! I've been thinking about you. Thank you so much for your support — it means the world to me 💕"
+                          className="w-full bg-black/50 border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none resize-y placeholder:text-white/20" />
+                        <p className="text-xs text-white/20 mt-1">{voiceText.length} characters</p>
+                      </div>
+                      <div className="p-3 rounded-xl text-xs text-white/40 leading-relaxed" style={{ background: "rgba(52,211,153,0.04)", border: "1px solid rgba(52,211,153,0.12)" }}>
+                        <strong className="text-green-300">Requires: </strong>
+                        Add <code className="bg-black/40 px-1 rounded">ELEVENLABS_API_KEY</code> + <code className="bg-black/40 px-1 rounded">ELEVENLABS_VOICE_ID</code> in Settings → AI Keys, or set <code className="bg-black/40 px-1 rounded">GPU_WORKER_URL</code> for XTTS v2 / RVC voice cloning on your own GPU.
+                      </div>
+                      <button onClick={generateVoice} disabled={voiceLoading || !voiceText.trim()}
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm disabled:opacity-40"
+                        style={{ background: "linear-gradient(135deg,#059669,#10b981)", color: "white", boxShadow: "0 4px 20px rgba(16,185,129,0.3)" }}>
+                        <Mic className="w-4 h-4" />{voiceLoading ? "Generating voice…" : "Generate Voice Message"}
+                      </button>
+                    </GoldCard>
+                    {voiceLoading && (
+                      <div className="flex items-center gap-3 text-white/50 text-sm">
+                        <div className="w-4 h-4 border-2 border-green-500/30 border-t-green-400 rounded-full animate-spin" />
+                        Synthesizing voice…
+                      </div>
+                    )}
+                    {voiceResult?.audioUrl && (
+                      <GoldCard className="p-4 space-y-3">
+                        <h3 className="font-semibold text-white">Voice Message Ready</h3>
+                        <audio controls src={voiceResult.audioUrl.startsWith("http") ? voiceResult.audioUrl : `${BASE}${voiceResult.audioUrl}`} className="w-full rounded-xl" />
+                        <button onClick={() => {
+                          const a = document.createElement("a");
+                          a.href = voiceResult.audioUrl!.startsWith("http") ? voiceResult.audioUrl! : `${BASE}${voiceResult.audioUrl}`;
+                          a.download = "hannah-voice-message.mp3"; a.click();
+                        }} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-green-500/30 text-green-300 bg-green-500/10 hover:bg-green-500/20 transition-colors">
+                          Download MP3
+                        </button>
+                      </GoldCard>
+                    )}
+                    {voiceResult?.message && !voiceResult?.audioUrl && (
+                      <div className="rounded-xl p-4 border border-amber-500/20 bg-amber-500/5 text-sm text-amber-300">{voiceResult.message}</div>
+                    )}
                   </div>
                 )}
               </div>

@@ -11,6 +11,8 @@ import Calls from "@/pages/calls";
 import Store from "@/pages/store";
 import Feed from "@/pages/feed";
 import Admin from "@/pages/admin";
+import Profile from "@/pages/profile";
+import Studio from "@/pages/studio";
 import AppSwitcher from "@/components/AppSwitcher";
 
 const queryClient = new QueryClient();
@@ -31,6 +33,8 @@ function Router() {
       <Route path="/calls" component={Calls} />
       <Route path="/store" component={Store} />
       <Route path="/feed" component={Feed} />
+      <Route path="/profile" component={Profile} />
+      <Route path="/studio" component={Studio} />
       <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>

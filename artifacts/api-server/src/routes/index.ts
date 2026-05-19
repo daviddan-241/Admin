@@ -11,6 +11,7 @@ import adminRouter from "./admin";
 import chatRouter from "./chat";
 import socialRouter from "./social";
 import settingsRouter from "./settings";
+import aiGenerateRouter from "./ai-generate";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(postsRouter);
 router.use(chatRouter);
 router.use(socialRouter);
 router.use(settingsRouter);
+router.use(aiGenerateRouter);
 
 export default router;

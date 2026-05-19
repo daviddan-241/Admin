@@ -249,6 +249,7 @@ export default function Messages() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [lastAt, setLastAt] = useState<string | null>(null);
+  const sseRef = useRef<EventSource | null>(null);
   const [atBottom, setAtBottom] = useState(true);
   const [typingDots, setTypingDots] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -294,32 +295,35 @@ export default function Messages() {
 
   useEffect(() => {
     if (step !== "chat" || !token.current) return;
-    pollRef.current = setInterval(async () => {
-      if (!token.current) return;
+    const es = new EventSource(`${API}/chat/${token.current}/stream`);
+    sseRef.current = es;
+
+    es.onmessage = (event) => {
       try {
-        const url = `${API}/chat/${token.current}/poll${lastAt ? `?since=${encodeURIComponent(lastAt)}` : ""}`;
-        const r = await fetch(url);
-        if (!r.ok) return;
-        const data = await r.json();
-        if (data.messages?.length > 0) {
+        const data = JSON.parse(event.data) as { type: string; messages?: ChatMessage[]; freeUsed?: number };
+        if (data.type === "messages" && data.messages?.length) {
           setTypingDots(true);
           setTimeout(() => setTypingDots(false), 1500);
           setMessages((prev) => {
             const existingIds = new Set(prev.map((m) => m.id));
-            const newMsgs = data.messages.filter((m: ChatMessage) => !existingIds.has(m.id));
+            const newMsgs = (data.messages ?? []).filter((m) => !existingIds.has(m.id));
             if (newMsgs.length === 0) return prev;
-            setLastAt(newMsgs[newMsgs.length - 1].createdAt);
-            const hasHannahReply = newMsgs.some((m: ChatMessage) => m.senderType === "hannah");
+            const hasHannahReply = newMsgs.some((m) => m.senderType === "hannah");
             if (hasHannahReply) toast({ title: "💫 Hannah replied!", description: "You have a new message." });
             return [...prev, ...newMsgs];
           });
-          setSession((s) => s ? { ...s, freeUsed: data.freeUsed } : s);
+          if (data.freeUsed !== undefined) {
+            setSession((s) => s ? { ...s, freeUsed: data.freeUsed! } : s);
+          }
           if (atBottom) setTimeout(() => scrollToBottom(), 80);
         }
       } catch {}
-    }, POLL_INTERVAL);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [step, lastAt, atBottom, scrollToBottom, toast]);
+    };
+
+    es.onerror = () => { /* EventSource auto-reconnects */ };
+
+    return () => { es.close(); sseRef.current = null; };
+  }, [step, atBottom, scrollToBottom, toast]);
 
   useEffect(() => {
     if (messages.length > 0 && atBottom) scrollToBottom(false);

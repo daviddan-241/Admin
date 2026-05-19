@@ -77,6 +77,45 @@ router.get("/chat/:token/poll", async (req, res): Promise<void> => {
   res.json({ messages: msgs.map(serializeMsg), freeUsed: session.freeUsed });
 });
 
+// GET /chat/:token/stream — SSE real-time messages (replaces polling)
+router.get("/chat/:token/stream", async (req, res): Promise<void> => {
+  const [session] = await db.select().from(chatSessionsTable).where(eq(chatSessionsTable.fanToken, req.params.token)).limit(1);
+  if (!session) { res.status(404).json({ error: "Session not found" }); return; }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  res.write(":ok\n\n");
+
+  let lastMsgId = 0;
+
+  const poll = setInterval(async () => {
+    try {
+      const [freshSession] = await db.select().from(chatSessionsTable)
+        .where(eq(chatSessionsTable.id, session.id)).limit(1);
+      const msgs = await db.select().from(chatMessagesTable).where(
+        and(eq(chatMessagesTable.sessionId, session.id), gt(chatMessagesTable.id, lastMsgId))
+      ).orderBy(chatMessagesTable.createdAt);
+
+      if (msgs.length > 0) {
+        lastMsgId = msgs[msgs.length - 1].id;
+        res.write(`data: ${JSON.stringify({
+          type: "messages",
+          messages: msgs.map(serializeMsg),
+          freeUsed: freshSession?.freeUsed ?? session.freeUsed,
+        })}\n\n`);
+      } else {
+        res.write(":ping\n\n");
+      }
+    } catch { /* ignore db errors during stream */ }
+  }, 1500);
+
+  req.on("close", () => clearInterval(poll));
+});
+
 // POST /chat/:token/send — fan sends message (text)
 router.post("/chat/:token/send", async (req, res): Promise<void> => {
   const [session] = await db.select().from(chatSessionsTable).where(eq(chatSessionsTable.fanToken, req.params.token)).limit(1);
