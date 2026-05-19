@@ -10,6 +10,7 @@ import eventsRouter from "./events";
 import adminRouter from "./admin";
 import chatRouter from "./chat";
 import socialRouter from "./social";
+import settingsRouter from "./settings";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(statsRouter);
 router.use(postsRouter);
 router.use(chatRouter);
 router.use(socialRouter);
+router.use(settingsRouter);
 
 export default router;

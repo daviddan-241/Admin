@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "TWHtRLjvw6RBl4_d5hIe6"
+uri = "file://artifacts/hannah-brooks/public/logo-hb.png"
+type = "image"
+title = "HB monogram luxury logo"
+
+[[generated]]
+id = "RetPaMUR3uj77c5dY7Kqi"
+uri = "file://artifacts/hannah-brooks/public/logo-banner.png"
+type = "image"
+title = "Hannah Brooks banner logo"

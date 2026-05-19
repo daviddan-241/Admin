@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { usePlatformConfig } from "@/hooks/use-platform-config";
+import { Star, Lock, Heart, Sparkles, MessageCircle, Video, ChevronRight, Instagram, Twitter } from "lucide-react";
 
-// Photos
 import imgHero from "@assets/IMG_2411_1779144779567.jpeg";
 import imgSportsBra from "@assets/IMG_2413_1779144779567.jpeg";
 import imgBikiniBunny from "@assets/IMG_2414_1779144779567.jpeg";
@@ -22,7 +23,8 @@ import imgGymshark from "@assets/IMG_2406_1779144779567.jpeg";
 import imgBlackSheer from "@assets/621a6159-c0fd-4251-aee5-12d5784ad850_1779144779567.jpeg";
 import imgGolfSkirt from "@assets/4213f549-3b25-453e-8b15-244f70907615_1779144779567.jpeg";
 
-// Videos — served from public/videos/ with clean filenames
+const logoHB = `${import.meta.env.BASE_URL}logo-hb.png`;
+
 const vidKaraoke = `${import.meta.env.BASE_URL}videos/karaoke.mp4`;
 const vidHighFive = `${import.meta.env.BASE_URL}videos/highfive.mp4`;
 const vidDogs = `${import.meta.env.BASE_URL}videos/frenchies.mp4`;
@@ -31,14 +33,23 @@ const vidLife2 = `${import.meta.env.BASE_URL}videos/lifestyle2.mov`;
 
 export default function Home() {
   const { toast } = useToast();
+  const { config } = usePlatformConfig();
   const [formState, setFormState] = useState({ name: "", email: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeGalleryIdx, setActiveGalleryIdx] = useState(0);
+
+  const galleryImages = [imgTealLace, imgBikiniBunny, imgLeopard, imgBlackSheer, imgSportsBra, imgUnionJack, imgTartan, imgGolfSkirt, imgChampagne, imgPurpleSports, imgBlueTop, imgGymshark, imgSportswear];
+
+  useEffect(() => {
+    const t = setInterval(() => setActiveGalleryIdx(i => (i + 1) % galleryImages.length), 3500);
+    return () => clearInterval(t);
+  }, []);
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setTimeout(() => {
-      toast({ title: "Message sent", description: "Thanks for reaching out! I'll get back to you soon." });
+      toast({ title: "Message sent ✨", description: "Thank you for reaching out. I'll be in touch." });
       setFormState({ name: "", email: "", message: "" });
       setIsSubmitting(false);
     }, 1000);
@@ -46,124 +57,174 @@ export default function Home() {
 
   return (
     <Layout>
-      {/* 1. Hero Section */}
-      <section className="relative w-full h-[90vh] min-h-[600px] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img src={imgHero} alt="Hannah Brooks" className="w-full h-full object-cover object-top opacity-50" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-transparent" />
-        </div>
-        
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000">
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold font-serif mb-4 tracking-tighter text-white drop-shadow-lg">
-            HANNAH BROOKS
+      {/* ─── HERO ────────────────────────────────────── */}
+      <section className="relative w-full min-h-screen flex items-center justify-center overflow-hidden">
+        {/* animated background slideshow */}
+        {galleryImages.map((img, i) => (
+          <div key={i} className={`absolute inset-0 transition-opacity duration-1000 ${i === activeGalleryIdx ? "opacity-100" : "opacity-0"}`}>
+            <img src={img} alt="" className="w-full h-full object-cover object-top" />
+          </div>
+        ))}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30 z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40 z-10" />
+
+        <div className="relative z-20 text-center px-4 max-w-4xl mx-auto">
+          <div className="flex justify-center mb-8">
+            <img src={logoHB} alt="HB Logo" className="w-28 h-28 md:w-36 md:h-36 object-contain drop-shadow-2xl" />
+          </div>
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold font-serif mb-4 tracking-tighter text-white drop-shadow-2xl">
+            HANNAH<br /><span style={{color:"#c9a84c"}}>BROOKS</span>
           </h1>
-          <p className="text-xl md:text-2xl text-white/90 font-light mb-8 max-w-2xl mx-auto tracking-wide">
-            British Creator &bull; Entertainer &bull; Fitness Lover
+          <p className="text-lg md:text-xl text-white/80 font-light mb-3 tracking-[0.25em] uppercase">
+            {config.creatorTagline}
           </p>
+          <div className="flex items-center justify-center gap-2 mb-10">
+            <span className="h-px w-16 bg-amber-400/60" />
+            <Star className="w-4 h-4 text-amber-400" fill="currentColor" />
+            <Star className="w-4 h-4 text-amber-400" fill="currentColor" />
+            <Star className="w-4 h-4 text-amber-400" fill="currentColor" />
+            <span className="h-px w-16 bg-amber-400/60" />
+          </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/members" className="inline-flex h-12 items-center justify-center rounded-full bg-primary px-8 text-sm font-semibold text-primary-foreground shadow transition-colors hover:bg-primary/90">
-              Unlock VIP Access
+            <Link href="/members">
+              <button className="inline-flex h-14 items-center justify-center rounded-full px-10 text-sm font-bold tracking-widest uppercase text-black shadow-2xl hover:scale-105 active:scale-95 transition-transform" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>
+                <Lock className="w-4 h-4 mr-2" /> Unlock VIP Access
+              </button>
             </Link>
-            <a href="#about" className="inline-flex h-12 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur px-8 text-sm font-medium text-white transition-colors hover:bg-white/10">
+            <a href="#about" className="inline-flex h-14 items-center justify-center rounded-full border border-white/30 bg-black/30 backdrop-blur px-10 text-sm font-medium text-white tracking-widest uppercase hover:bg-white/10 hover:scale-105 transition-transform">
               Explore More
             </a>
           </div>
+          <p className="mt-6 text-white/40 text-sm tracking-wider">18+ · Adult content locked behind VIP</p>
+        </div>
+
+        {/* scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 opacity-60">
+          <div className="w-px h-12 bg-gradient-to-b from-transparent to-white/60" />
+          <span className="text-white/60 text-xs tracking-[0.2em] uppercase">Scroll</span>
         </div>
       </section>
 
-      {/* 2. About Section */}
-      <section id="about" className="py-24 bg-background relative border-t border-white/5">
+      {/* ─── STATS BAR ───────────────────────────────── */}
+      <section className="border-y border-white/5 bg-black py-8">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            {[
+              { num: "50K+", label: "Followers" },
+              { num: "2K+", label: "VIP Members" },
+              { num: "18+", label: "Verified Adults Only" },
+              { num: "★ 4.9", label: "Member Rating" },
+            ].map(s => (
+              <div key={s.label}>
+                <p className="text-2xl md:text-3xl font-bold font-serif" style={{color:"#c9a84c"}}>{s.num}</p>
+                <p className="text-white/50 text-sm mt-1 tracking-wider uppercase">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── ABOUT ───────────────────────────────────── */}
+      <section id="about" className="py-28 bg-background">
         <div className="container mx-auto px-4 max-w-6xl">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="relative aspect-[3/4] md:aspect-square overflow-hidden rounded-2xl">
-              <img src={imgGolfSkirt} alt="Hannah on the golf course" className="object-cover w-full h-full hover:scale-105 transition-transform duration-700" />
-              <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-2xl" />
-            </div>
-            <div className="space-y-6">
-              <h2 className="text-4xl md:text-5xl font-serif font-bold text-white">Behind the Scenes</h2>
-              <div className="h-1 w-20 bg-primary rounded-full"></div>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                I'm Hannah — a British content creator, adult entertainer, fitness lover, and dog mum. Whether I'm hitting the gym, singing my heart out at karaoke, or practicing my swing on the golf course, I live life with passion and unapologetic confidence.
-              </p>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                This space is my exclusive digital home where I share the sides of my life you won't see anywhere else. Velvet ropes, zero boundaries.
-              </p>
-              <div className="pt-4">
-                <Link href="/members" className="text-primary hover:text-primary/80 font-semibold tracking-wide uppercase text-sm border-b border-primary/30 pb-1 hover:border-primary transition-all">
-                  Join the Inner Circle &rarr;
-                </Link>
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div className="relative">
+              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl">
+                <img src={imgGolfSkirt} alt="Hannah Brooks" className="object-cover w-full h-full hover:scale-105 transition-transform duration-1000" />
+                <div className="absolute inset-0 ring-1 ring-inset ring-amber-400/20 rounded-2xl" />
+              </div>
+              <div className="absolute -bottom-6 -right-6 w-36 h-36 overflow-hidden rounded-2xl ring-4 ring-black shadow-2xl">
+                <img src={imgChampagne} alt="" className="object-cover w-full h-full" />
+              </div>
+              <div className="absolute top-8 -left-4 bg-black/80 backdrop-blur border border-amber-400/30 rounded-xl px-4 py-3 shadow-xl">
+                <p className="text-amber-400 text-xs font-bold tracking-wider uppercase mb-1">Exclusive Content</p>
+                <p className="text-white text-sm font-medium">Available for Members</p>
               </div>
             </div>
+            <div className="space-y-7">
+              <div>
+                <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">About Hannah</p>
+                <h2 className="text-4xl md:text-5xl font-serif font-bold text-white leading-tight">Behind<br />the Velvet<br />Ropes</h2>
+              </div>
+              <div className="h-px bg-gradient-to-r from-amber-400/60 to-transparent" />
+              <p className="text-lg text-white/70 leading-relaxed">
+                {config.creatorBio}
+              </p>
+              <p className="text-white/50 leading-relaxed">
+                Whether I'm hitting the gym, singing my heart out at karaoke, or practicing my swing on the golf course — I live life with passion and unapologetic confidence. This space is where the algorithm can't reach me.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {["Fitness", "Lifestyle", "Adult Content", "Custom Requests"].map(tag => (
+                  <span key={tag} className="px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider border border-amber-400/30 text-amber-400/80">{tag}</span>
+                ))}
+              </div>
+              <Link href="/members">
+                <button className="inline-flex items-center gap-2 font-bold tracking-wider text-amber-400 hover:text-amber-300 transition-colors group">
+                  Join the Inner Circle <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 3. Photo Gallery */}
-      <section className="py-24 bg-card/30 border-t border-white/5">
+      {/* ─── MASONRY GALLERY ─────────────────────────── */}
+      <section className="py-24 bg-black border-t border-white/5">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16 space-y-4">
-            <h2 className="text-4xl md:text-5xl font-serif font-bold text-white">Visuals</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">A glimpse into the lifestyle.</p>
+          <div className="text-center mb-16">
+            <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">Gallery</p>
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-white">Visual Highlights</h2>
+            <p className="text-white/50 mt-4 max-w-xl mx-auto">A curated glimpse. The full uncensored collection is behind VIP.</p>
           </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            <div className="grid gap-4 md:gap-6">
-              <img src={imgTealLace} alt="Gallery" className="w-full rounded-lg object-cover" />
-              <img src={imgSportsBra} alt="Gallery" className="w-full rounded-lg object-cover" />
-              <img src={imgBlackSheer} alt="Gallery" className="w-full rounded-lg object-cover" />
-            </div>
-            <div className="grid gap-4 md:gap-6">
-              <img src={imgBikiniBunny} alt="Gallery" className="w-full rounded-lg object-cover" />
-              <img src={imgLeopard} alt="Gallery" className="w-full rounded-lg object-cover" />
-              <img src={imgUnionJack} alt="Gallery" className="w-full rounded-lg object-cover" />
-            </div>
-            <div className="grid gap-4 md:gap-6">
-              <img src={imgTartan} alt="Gallery" className="w-full rounded-lg object-cover" />
-              <img src={imgGymshark} alt="Gallery" className="w-full rounded-lg object-cover" />
-              <img src={imgChampagne} alt="Gallery" className="w-full rounded-lg object-cover" />
-            </div>
-            <div className="grid gap-4 md:gap-6">
-              <img src={imgPurpleSports} alt="Gallery" className="w-full rounded-lg object-cover" />
-              <img src={imgBlueTop} alt="Gallery" className="w-full rounded-lg object-cover" />
-              <img src={imgSportswear} alt="Gallery" className="w-full rounded-lg object-cover" />
-            </div>
+          <div className="columns-2 md:columns-3 lg:columns-4 gap-3 md:gap-4 space-y-3 md:space-y-4">
+            {[imgTealLace, imgSportsBra, imgBikiniBunny, imgLeopard, imgBlackSheer, imgUnionJack, imgTartan, imgGymshark, imgChampagne, imgPurpleSports, imgBlueTop, imgSportswear].map((img, i) => (
+              <div key={i} className="break-inside-avoid group relative overflow-hidden rounded-xl ring-1 ring-white/5">
+                <img src={img} alt="" className="w-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                {i % 4 === 0 && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="flex items-center gap-1 text-amber-400 text-xs font-bold tracking-wider"><Lock className="w-3 h-3" /> VIP</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="text-center mt-12">
+            <Link href="/members">
+              <button className="inline-flex h-12 items-center gap-2 rounded-full px-8 font-bold text-sm tracking-wider text-black hover:scale-105 transition-transform" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>
+                <Lock className="w-4 h-4" /> Unlock All Content
+              </button>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* 4. Video Highlights */}
-      <section className="py-24 bg-background border-t border-white/5 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+      {/* ─── VIDEOS ──────────────────────────────────── */}
+      <section className="py-24 bg-background border-t border-white/5">
+        <div className="container mx-auto px-4">
+          <div className="flex items-end justify-between mb-16">
             <div>
-              <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-4">Highlights</h2>
-              <p className="text-muted-foreground text-lg">Life in motion. Karaoke, comedy, and everything in between.</p>
+              <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">Video</p>
+              <h2 className="text-4xl md:text-5xl font-serif font-bold text-white">Life in Motion</h2>
             </div>
+            <Link href="/feed">
+              <button className="text-amber-400 text-sm font-semibold hover:text-amber-300 transition-colors flex items-center gap-1">
+                Full Feed <ChevronRight className="w-4 h-4" />
+              </button>
+            </Link>
           </div>
-
-          <div className="flex overflow-x-auto pb-8 -mx-4 px-4 gap-6 snap-x hide-scrollbar">
+          <div className="flex overflow-x-auto pb-6 -mx-4 px-4 gap-5 snap-x" style={{scrollbarWidth:"none"}}>
             {[
-              { src: vidKaraoke, title: "Karaoke Nights" },
-              { src: vidHighFive, title: "Story Time" },
-              { src: vidDogs, title: "Dog Mum Life" },
-              { src: vidLife1, title: "Lifestyle" },
-              { src: vidLife2, title: "Behind the Scenes" }
-            ].map((vid, idx) => (
-              <div key={idx} className="shrink-0 w-[280px] md:w-[320px] snap-center">
-                <div className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-muted group ring-1 ring-white/10 shadow-xl">
-                  <video 
-                    src={vid.src} 
-                    className="w-full h-full object-cover"
-                    controls
-                    playsInline
-                    preload="metadata"
-                    poster={imgHero} // Use hero as rough poster fallback
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none transition-opacity duration-300 group-hover:opacity-0" />
-                  <div className="absolute bottom-4 left-4 pointer-events-none transition-opacity duration-300 group-hover:opacity-0">
-                    <p className="text-white font-medium drop-shadow-md">{vid.title}</p>
+              { src: vidKaraoke, label: "Karaoke Nights" },
+              { src: vidHighFive, label: "Story Time" },
+              { src: vidDogs, label: "Dog Mum Life" },
+              { src: vidLife1, label: "Lifestyle" },
+              { src: vidLife2, label: "Behind the Scenes" },
+            ].map((v, i) => (
+              <div key={i} className="shrink-0 w-[240px] md:w-[280px] snap-center group">
+                <div className="relative aspect-[9/16] rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
+                  <video src={v.src} className="w-full h-full object-cover" controls playsInline preload="metadata" poster={imgHero} />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 pointer-events-none">
+                    <p className="text-white font-semibold text-sm">{v.label}</p>
                   </div>
                 </div>
               </div>
@@ -172,106 +233,110 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. Social Links */}
-      <section className="py-20 bg-accent text-accent-foreground border-y border-white/10">
+      {/* ─── SERVICES PREVIEW ────────────────────────── */}
+      <section className="py-24 bg-black border-t border-white/5">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="text-center mb-16">
+            <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">Services</p>
+            <h2 className="text-4xl font-serif font-bold text-white">Connect With Hannah</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { icon: <MessageCircle className="w-7 h-7" />, title: "Private DMs", desc: "Send a personal message. First few on me — then it's pay-to-chat.", href: "/messages", price: `from $${config.msgPrice}` },
+              { icon: <Video className="w-7 h-7" />, title: "1-on-1 Calls", desc: "FaceTime, Zoom, or WhatsApp video. Real time with Hannah.", href: "/calls", price: `from $${config.callWa5}` },
+              { icon: <Sparkles className="w-7 h-7" />, title: "Custom Content", desc: "Request bespoke photos or videos made just for you.", href: "/store", price: `from $${config.requestPrice}` },
+            ].map(s => (
+              <Link key={s.title} href={s.href}>
+                <div className="group relative bg-zinc-900 hover:bg-zinc-800 border border-white/5 hover:border-amber-400/30 rounded-2xl p-7 transition-all cursor-pointer h-full">
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-5 text-amber-400" style={{background:"rgba(201,168,76,0.1)"}}>
+                    {s.icon}
+                  </div>
+                  <h3 className="text-white font-bold text-lg mb-2">{s.title}</h3>
+                  <p className="text-white/50 text-sm leading-relaxed mb-4">{s.desc}</p>
+                  <p className="text-amber-400 font-bold text-sm">{s.price}</p>
+                  <ChevronRight className="absolute top-7 right-7 w-5 h-5 text-white/20 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── SOCIALS ─────────────────────────────────── */}
+      <section className="py-20 border-t border-white/5 bg-background">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-serif font-bold mb-10">Connect With Me</h2>
-          <div className="flex flex-wrap justify-center gap-6 md:gap-12">
-            <a href="https://tiktok.com/@hannahbrooksxxx" target="_blank" rel="noreferrer" className="flex flex-col items-center group">
-              <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3 group-hover:bg-white/20 transition-colors ring-1 ring-white/20">
-                <span className="text-xl font-bold">TT</span>
-              </div>
-              <span className="font-medium text-white/80 group-hover:text-white transition-colors">@hannahbrooksxxx</span>
-            </a>
-            <a href="https://x.com/hannahbrooksxx" target="_blank" rel="noreferrer" className="flex flex-col items-center group">
-              <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3 group-hover:bg-white/20 transition-colors ring-1 ring-white/20">
-                <span className="text-xl font-bold">X</span>
-              </div>
-              <span className="font-medium text-white/80 group-hover:text-white transition-colors">@hannahbrooksxx</span>
-            </a>
-            <a href="https://onlyfans.com/hannahbrooks" target="_blank" rel="noreferrer" className="flex flex-col items-center group">
-              <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3 group-hover:bg-white/20 transition-colors ring-1 ring-white/20">
-                <span className="text-xl font-bold">OF</span>
-              </div>
-              <span className="font-medium text-white/80 group-hover:text-white transition-colors">hannahbrooks</span>
-            </a>
+          <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-4">Follow Me</p>
+          <h2 className="text-3xl font-serif font-bold text-white mb-12">Find Me Everywhere</h2>
+          <div className="flex flex-wrap justify-center gap-6 md:gap-10">
+            {[
+              { label: "TikTok", handle: "@hannahbrooksxxx", href: config.tiktokUrl, icon: "TT", color: "#ff0050" },
+              { label: "X / Twitter", handle: "@hannahbrooksxx", href: config.twitterUrl, icon: "X", color: "#1da1f2" },
+              { label: "OnlyFans", handle: "hannahbrooks", href: config.onlyfansUrl, icon: "OF", color: "#00aff0" },
+              { label: "Instagram", handle: "@hannahbrooks", href: config.instagramUrl, icon: "IG", color: "#e1306c" },
+            ].map(s => (
+              <a key={s.label} href={s.href} target="_blank" rel="noreferrer" className="flex flex-col items-center group">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 text-white font-black text-lg group-hover:scale-110 transition-transform shadow-lg" style={{background:s.color+"22",border:`1px solid ${s.color}40`}}>
+                  <span style={{color:s.color}}>{s.icon}</span>
+                </div>
+                <p className="text-white/70 text-xs font-semibold group-hover:text-white transition-colors">{s.handle}</p>
+                <p className="text-white/30 text-xs">{s.label}</p>
+              </a>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* 6. Contact Form */}
-      <section className="py-24 bg-background relative">
-        <div className="container mx-auto px-4 max-w-xl">
-          <div className="text-center mb-12 space-y-4">
-            <h2 className="text-4xl font-serif font-bold text-white">Get in Touch</h2>
-            <p className="text-muted-foreground">Business inquiries, bookings, or just saying hello.</p>
-          </div>
-          
-          <form onSubmit={handleContactSubmit} className="space-y-6 bg-card/50 p-8 rounded-2xl border border-white/5 backdrop-blur-sm">
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium text-white/80">Name</label>
-              <Input 
-                id="name" 
-                value={formState.name} 
-                onChange={e => setFormState(s => ({ ...s, name: e.target.value }))}
-                required 
-                className="bg-black/50 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-primary"
-                placeholder="Your name"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-white/80">Email</label>
-              <Input 
-                id="email" 
-                type="email"
-                value={formState.email} 
-                onChange={e => setFormState(s => ({ ...s, email: e.target.value }))}
-                required 
-                className="bg-black/50 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-primary"
-                placeholder="your@email.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="message" className="text-sm font-medium text-white/80">Message</label>
-              <Textarea 
-                id="message" 
-                value={formState.message} 
-                onChange={e => setFormState(s => ({ ...s, message: e.target.value }))}
-                required 
-                className="min-h-[120px] bg-black/50 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-primary"
-                placeholder="What's on your mind?"
-              />
-            </div>
-            <Button type="submit" disabled={isSubmitting} className="w-full h-12 text-md rounded-xl bg-white text-black hover:bg-white/90 font-semibold shadow-lg">
-              {isSubmitting ? "Sending..." : "Send Message"}
-            </Button>
-          </form>
-        </div>
-      </section>
-
-      {/* 7. CTA Section */}
-      <section className="py-32 relative overflow-hidden">
+      {/* ─── CTA ─────────────────────────────────────── */}
+      <section className="py-36 relative overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img src={imgHero} alt="Background" className="w-full h-full object-cover opacity-20 filter saturate-0" />
-          <div className="absolute inset-0 bg-primary/20 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/20" />
+          <img src={imgHero} alt="" className="w-full h-full object-cover opacity-30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/60" />
         </div>
-        <div className="container mx-auto px-4 relative z-10 text-center max-w-3xl">
-          <h2 className="text-5xl md:text-6xl font-serif font-bold text-white mb-6">Join the VIP Club</h2>
-          <p className="text-xl text-white/80 mb-10 leading-relaxed font-light">
-            Ready to see more? Unlock my exclusive, uncensored content hub. No algorithms, no rules — just you and me.
+        <div className="relative z-10 container mx-auto px-4 text-center max-w-3xl">
+          <div className="flex justify-center mb-8">
+            <img src={logoHB} alt="HB" className="w-20 h-20 object-contain opacity-90" />
+          </div>
+          <h2 className="text-5xl md:text-7xl font-serif font-bold text-white mb-6 leading-tight">
+            No Algorithms.<br />No Limits.<br />Just <span style={{color:"#c9a84c"}}>Us.</span>
+          </h2>
+          <p className="text-xl text-white/70 mb-10 font-light leading-relaxed max-w-xl mx-auto">
+            My exclusive members club. Uncensored content, priority DMs, and access to all of me.
           </p>
-          <Link href="/members" className="inline-flex h-14 items-center justify-center rounded-full bg-primary px-10 text-lg font-bold text-primary-foreground shadow-xl transition-all hover:bg-primary/90 hover:scale-105 active:scale-95 ring-4 ring-primary/20">
-            Unlock Full Access Now
+          <Link href="/members">
+            <button className="inline-flex h-16 items-center gap-3 rounded-full px-12 text-lg font-black tracking-wider text-black shadow-2xl hover:scale-105 active:scale-95 transition-transform" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>
+              <Lock className="w-5 h-5" /> Join VIP — From ${config.subMonthly}/mo
+            </button>
           </Link>
         </div>
       </section>
 
-      {/* Adding a global style block just for the hide-scrollbar utility */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}} />
+      {/* ─── CONTACT ─────────────────────────────────── */}
+      <section className="py-24 bg-black border-t border-white/5">
+        <div className="container mx-auto px-4 max-w-lg">
+          <div className="text-center mb-12">
+            <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">Business</p>
+            <h2 className="text-4xl font-serif font-bold text-white">Get in Touch</h2>
+            <p className="text-white/50 mt-3">Collabs, brand deals, bookings — say hello.</p>
+          </div>
+          <form onSubmit={handleContactSubmit} className="space-y-5 bg-zinc-900 p-8 rounded-2xl border border-white/5">
+            <div>
+              <label className="text-xs font-bold text-white/50 tracking-wider uppercase block mb-2">Name</label>
+              <Input value={formState.name} onChange={e => setFormState(s => ({ ...s, name: e.target.value }))} required placeholder="Your name" className="bg-black border-white/10 text-white placeholder:text-white/20 focus-visible:ring-amber-400/50" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-white/50 tracking-wider uppercase block mb-2">Email</label>
+              <Input type="email" value={formState.email} onChange={e => setFormState(s => ({ ...s, email: e.target.value }))} required placeholder="your@email.com" className="bg-black border-white/10 text-white placeholder:text-white/20 focus-visible:ring-amber-400/50" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-white/50 tracking-wider uppercase block mb-2">Message</label>
+              <Textarea value={formState.message} onChange={e => setFormState(s => ({ ...s, message: e.target.value }))} required placeholder="Tell me about your inquiry…" className="min-h-[110px] bg-black border-white/10 text-white placeholder:text-white/20 focus-visible:ring-amber-400/50" />
+            </div>
+            <button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-xl font-bold text-sm tracking-wider text-black transition-opacity hover:opacity-90 disabled:opacity-50" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>
+              {isSubmitting ? "Sending…" : "Send Message"}
+            </button>
+          </form>
+        </div>
+      </section>
     </Layout>
   );
 }
