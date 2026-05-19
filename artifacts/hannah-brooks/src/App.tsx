@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,6 +13,13 @@ import Feed from "@/pages/feed";
 import Admin from "@/pages/admin";
 
 const queryClient = new QueryClient();
+
+export type Theme = "dark" | "light";
+
+export const ThemeContext = React.createContext<{
+  theme: Theme;
+  toggleTheme: () => void;
+}>({ theme: "dark", toggleTheme: () => {} });
 
 function Router() {
   return (
@@ -30,19 +37,31 @@ function Router() {
 }
 
 function App() {
+  const [theme, setTheme] = useState<Theme>(() => {
+    const saved = localStorage.getItem("hb_theme");
+    return (saved === "light" || saved === "dark") ? saved : "dark";
+  });
+
   useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
+    const root = document.documentElement;
+    root.classList.remove("dark", "light");
+    root.classList.add(theme);
+    localStorage.setItem("hb_theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeContext.Provider>
   );
 }
 

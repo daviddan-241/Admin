@@ -1,0 +1,138 @@
+Build a production-grade AI Digital Persona platform that creates a live autonomous avatar from uploaded videos, voice samples, and personality prompts.
+
+CORE PURPOSE:
+The platform should allow a user to upload videos/audio of themselves or consented media, train a digital persona, and then:
+- appear as the AI avatar on webcam,
+- transform voice in real time,
+- auto-generate replies,
+- act consistently with a configured personality,
+- run while the user is offline.
+
+MAIN FEATURES:
+
+1. AI AVATAR TRAINING
+- Upload 2–10 videos
+- Extract facial identity embeddings
+- Extract voice embeddings
+- Learn speaking style and behavior
+- Build reusable persona profiles
+- Multi-persona support
+
+2. REAL-TIME FACE TRANSFORMATION
+- Webcam face replacement
+- Expression transfer
+- Eye tracking
+- Lip-sync preservation
+- Lighting adaptation
+- Real-time rendering under 120ms latency
+- OBS virtual camera support
+- Browser webcam support
+
+3. REAL-TIME VOICE TRANSFORMATION
+- Upload clean voice samples
+- Real-time voice conversion
+- Emotion preservation
+- Noise suppression
+- Live microphone routing
+- Voice profile switching
+
+4. PERSONALITY ENGINE
+- Personality prompt system
+- Memory system
+- Context awareness
+- Writing style cloning
+- Tone control
+- Auto-reply engine
+- Long-term conversation memory
+
+5. AUTONOMOUS REPLY SYSTEM
+- Reads incoming web messages
+- Generates context-aware responses
+- Supports online/offline auto-reply
+- Human approval mode
+- Autonomous mode
+- Delayed response simulation
+- Multi-platform response orchestration
+
+6. WEB PLATFORM
+- Next.js frontend
+- Dashboard UI
+- Persona manager
+- Video/audio upload panel
+- Live preview
+- Real-time settings
+- Chat control panel
+- Analytics dashboard
+
+7. REAL-TIME STREAMING
+- WebRTC pipeline
+- Browser webcam injection
+- OBS integration
+- Virtual webcam support
+- Low-latency media transport
+
+8. AI STACK
+FACE:
+- LivePortrait
+- InsightFace
+- MediaPipe
+- ONNX Runtime
+
+VOICE:
+- XTTS
+- RVC
+- Whisper
+- RNNoise
+
+LLM:
+- OpenAI-compatible API support
+- Llama 3
+- Mistral
+- Context memory engine
+
+9. BACKEND
+- FastAPI
+- Redis queues
+- PostgreSQL
+- GPU worker orchestration
+- WebSocket streaming
+- FFmpeg processing pipeline
+
+10. SECURITY
+- Consent-based identity creation only
+- Encryption for uploaded media
+- User-controlled deletion
+- Audit logs
+- Abuse prevention
+
+11. PERFORMANCE
+- GPU acceleration
+- Dynamic model scaling
+- Adaptive quality
+- Sub-120ms target latency
+- Real-time frame optimization
+
+12. DEPLOYMENT
+- Dockerized architecture
+- Kubernetes-ready
+- NVIDIA GPU support
+- Render/Vast.ai/RunPod compatible
+- CI/CD pipeline
+
+13. MOBILE COMPANION
+ANDROID:
+- Floating AI bubble
+- AI keyboard integration
+- Notification reply integration
+
+iOS:
+- Keyboard extension
+- ReplayKit integration
+- Companion controller app
+
+14. UI STYLE
+- Cyberpunk futuristic interface
+- Glassmorphism effects
+- Dark neon dashboard
+- Real-time status indicators
+- Floating control widgets

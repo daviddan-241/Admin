@@ -5,15 +5,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   MessageSquare, Phone, Sparkles, Gift, ImagePlus, LayoutDashboard,
-  Send, CheckCircle, XCircle, Clock, Trash2, Bell, BellOff, Eye, EyeOff,
-  LogOut, TrendingUp, Users, DollarSign, Star, RefreshCw, Instagram,
-  Twitter, Music2, Globe
+  Send, CheckCircle, Trash2, Bell, BellOff,
+  LogOut, DollarSign, Star, RefreshCw, Instagram,
+  Twitter, Music2, Globe, Zap, Github, Settings, Clock,
+  Play, ToggleLeft, ToggleRight, AlertCircle, ExternalLink
 } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
 
-type Tab = "dashboard" | "messages" | "calls" | "requests" | "tips" | "feed";
+type Tab = "dashboard" | "messages" | "calls" | "requests" | "tips" | "feed" | "social" | "github";
 
 type Message = {
   id: number; fanName: string; fanEmail: string; message: string;
@@ -42,6 +43,14 @@ type Stats = {
 type Activity = {
   type: "message" | "call" | "request" | "tip";
   fanName: string; amount: number; detail: string; timestamp: string;
+};
+type SocialConfig = {
+  enabled: boolean;
+  intervalHours: number;
+  xHandle: string;
+  tiktokHandle: string;
+  hasXToken: boolean;
+  hasRapidApiKey: boolean;
 };
 
 function statusBadge(status: string) {
@@ -93,6 +102,21 @@ export default function Admin() {
   const [loadingReply, setLoadingReply] = useState<number | null>(null);
   const [newPost, setNewPost] = useState({ imageUrl: "", caption: "", platform: "instagram", isPrivate: false });
   const [addingPost, setAddingPost] = useState(false);
+
+  // Social sync state
+  const [socialConfig, setSocialConfig] = useState<SocialConfig | null>(null);
+  const [syncingX, setSyncingX] = useState(false);
+  const [syncingTikTok, setSyncingTikTok] = useState(false);
+  const [syncingAll, setSyncingAll] = useState(false);
+  const [xHandleInput, setXHandleInput] = useState("");
+  const [tiktokHandleInput, setTiktokHandleInput] = useState("");
+  const [syncIntervalInput, setSyncIntervalInput] = useState("6");
+  const [lastSyncResult, setLastSyncResult] = useState<Record<string, unknown> | null>(null);
+
+  // GitHub state
+  const [githubPushing, setGithubPushing] = useState(false);
+  const [githubResult, setGithubResult] = useState<Record<string, unknown> | null>(null);
+
   const esRef = useRef<EventSource | null>(null);
 
   const fetchAll = useCallback(async () => {
@@ -111,6 +135,17 @@ export default function Admin() {
     if (tipRes.ok) setTips(await tipRes.json());
     if (postRes.ok) setPosts(await postRes.json());
     if (statRes.ok) setStats(await statRes.json());
+  }, [adminKey]);
+
+  const fetchSocialConfig = useCallback(async () => {
+    const res = await fetch(`${API}/social/config`, { headers: { "x-admin-key": adminKey } });
+    if (res.ok) {
+      const cfg = await res.json() as SocialConfig;
+      setSocialConfig(cfg);
+      setXHandleInput(cfg.xHandle || "");
+      setTiktokHandleInput(cfg.tiktokHandle || "");
+      setSyncIntervalInput(String(cfg.intervalHours || 6));
+    }
   }, [adminKey]);
 
   const login = async () => {
@@ -132,7 +167,8 @@ export default function Admin() {
   useEffect(() => {
     if (!authed) return;
     fetchAll();
-  }, [authed, fetchAll]);
+    fetchSocialConfig();
+  }, [authed, fetchAll, fetchSocialConfig]);
 
   useEffect(() => {
     if (!authed) return;
@@ -140,7 +176,7 @@ export default function Admin() {
     esRef.current = es;
     es.onmessage = (e) => {
       try {
-        const data = JSON.parse(e.data) as Activity & { type: string };
+        const data = JSON.parse(e.data) as (Activity & { type: string }) | { type: "connected" };
         if (data.type === "connected") return;
         setActivity((prev) => [data as Activity, ...prev].slice(0, 50));
         fetchAll();
@@ -205,6 +241,93 @@ export default function Admin() {
     fetchAll();
   };
 
+  const saveSocialConfig = async () => {
+    const res = await fetch(`${API}/social/config`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+      body: JSON.stringify({
+        xHandle: xHandleInput,
+        tiktokHandle: tiktokHandleInput,
+        intervalHours: parseInt(syncIntervalInput, 10) || 6,
+        enabled: socialConfig?.enabled ?? false,
+      }),
+    });
+    if (res.ok) {
+      const cfg = await res.json() as { config: SocialConfig };
+      setSocialConfig(cfg.config);
+      toast({ title: "Social sync settings saved!" });
+    }
+  };
+
+  const toggleAutoSync = async () => {
+    const res = await fetch(`${API}/social/config`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+      body: JSON.stringify({ enabled: !socialConfig?.enabled }),
+    });
+    if (res.ok) {
+      const cfg = await res.json() as { config: SocialConfig };
+      setSocialConfig(cfg.config);
+      toast({ title: cfg.config.enabled ? "Auto-sync enabled!" : "Auto-sync disabled" });
+    }
+  };
+
+  const syncPlatform = async (platform: "x" | "tiktok" | "all") => {
+    if (platform === "x") setSyncingX(true);
+    else if (platform === "tiktok") setSyncingTikTok(true);
+    else setSyncingAll(true);
+
+    const handle = platform === "x" ? xHandleInput : platform === "tiktok" ? tiktokHandleInput : undefined;
+    const endpoint = platform === "all" ? "/social/sync/all" : `/social/sync/${platform}`;
+    const body = handle ? (platform === "x" ? { handle } : { handle }) : {};
+
+    try {
+      const res = await fetch(`${API}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      setLastSyncResult(data as Record<string, unknown>);
+      if (res.ok) {
+        const synced = typeof data.synced === "number" ? data.synced : (
+          (data.x?.synced ?? 0) + (data.tiktok?.synced ?? 0)
+        );
+        toast({ title: `Synced ${synced} new post${synced !== 1 ? "s" : ""}!` });
+        fetchAll();
+      } else {
+        toast({ title: "Sync failed", description: data.error || data.message, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Network error", variant: "destructive" });
+    }
+
+    if (platform === "x") setSyncingX(false);
+    else if (platform === "tiktok") setSyncingTikTok(false);
+    else setSyncingAll(false);
+  };
+
+  const pushToGitHub = async () => {
+    setGithubPushing(true);
+    setGithubResult(null);
+    try {
+      const res = await fetch(`${API}/social/github/push`, {
+        method: "POST",
+        headers: { "x-admin-key": adminKey },
+      });
+      const data = await res.json();
+      setGithubResult(data as Record<string, unknown>);
+      if (res.ok && data.ok) {
+        toast({ title: "Pushed to GitHub!" });
+      } else {
+        toast({ title: "GitHub push failed", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Network error", variant: "destructive" });
+    }
+    setGithubPushing(false);
+  };
+
   const logout = () => {
     sessionStorage.removeItem("hb_admin_key");
     setAuthed(false);
@@ -213,25 +336,25 @@ export default function Admin() {
 
   if (!authed) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#080808] flex items-center justify-center px-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <div className="w-16 h-16 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center mx-auto mb-4">
               <Star className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="text-3xl font-serif font-bold text-white">Admin Panel</h1>
-            <p className="text-muted-foreground mt-2 text-sm">Hannah Brooks Creator Dashboard</p>
+            <h1 className="text-3xl font-serif font-bold text-white">Creator Portal</h1>
+            <p className="text-muted-foreground mt-2 text-sm">Hannah Brooks — Private Access Only</p>
           </div>
-          <div className="bg-card/50 border border-white/10 rounded-2xl p-6 space-y-4 backdrop-blur">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4 backdrop-blur">
             <Input
               type="password"
-              placeholder="Enter admin password"
+              placeholder="Enter your password"
               value={pwInput}
               onChange={(e) => setPwInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && login()}
               className="bg-black/60 border-white/10 text-white h-12 rounded-xl"
             />
-            <Button onClick={login} className="w-full h-12 rounded-xl bg-primary text-white font-bold">
+            <Button onClick={login} className="w-full h-12 rounded-xl bg-primary text-white font-bold shadow-[0_4px_20px_rgba(225,29,72,0.3)]">
               Sign In
             </Button>
           </div>
@@ -247,27 +370,24 @@ export default function Admin() {
     { id: "requests", label: "Requests", icon: <Sparkles className="w-4 h-4" />, count: requests.filter(r => r.status === "pending").length },
     { id: "tips", label: "Tips", icon: <Gift className="w-4 h-4" /> },
     { id: "feed", label: "Feed", icon: <ImagePlus className="w-4 h-4" /> },
+    { id: "social", label: "Social Sync", icon: <Zap className="w-4 h-4" /> },
+    { id: "github", label: "GitHub", icon: <Github className="w-4 h-4" /> },
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#080808] text-white">
       {/* Top Bar */}
-      <header className="sticky top-0 z-50 bg-black/80 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-[#080808]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
             <Star className="w-4 h-4 text-primary" />
           </div>
-          <span className="font-serif font-bold text-lg text-white">HB Admin</span>
+          <span className="font-serif font-bold text-lg text-white">HB Creator Portal</span>
+          <span className="hidden sm:inline text-xs text-muted-foreground border border-white/10 rounded-full px-2 py-0.5">Private</span>
         </div>
         <div className="flex items-center gap-2">
-          {/* Activity bell */}
           <div className="relative">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={enableNotifications}
-              className="text-muted-foreground hover:text-white"
-            >
+            <Button size="sm" variant="ghost" onClick={enableNotifications} className="text-muted-foreground hover:text-white">
               {notifEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
             </Button>
             {activity.length > 0 && (
@@ -341,7 +461,7 @@ export default function Admin() {
             ))}
           </div>
 
-          {/* DASHBOARD */}
+          {/* ─── DASHBOARD ─────────────────────────────────────────── */}
           {tab === "dashboard" && (
             <div className="space-y-6">
               <h2 className="text-2xl font-serif font-bold text-white">Dashboard</h2>
@@ -354,7 +474,7 @@ export default function Admin() {
                     { label: "Requests", value: stats.totalRequests, icon: <Sparkles className="w-5 h-5" />, color: "text-purple-400" },
                     { label: "Tips", value: stats.totalTips, icon: <Gift className="w-5 h-5" />, color: "text-emerald-400" },
                   ].map((s) => (
-                    <div key={s.label} className="bg-card/40 border border-white/5 rounded-2xl p-5">
+                    <div key={s.label} className="bg-white/5 border border-white/5 rounded-2xl p-5">
                       <div className={`${s.color} mb-3`}>{s.icon}</div>
                       <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
                       <div className="text-xs text-muted-foreground mt-1">{s.label}</div>
@@ -363,14 +483,33 @@ export default function Admin() {
                 </div>
               )}
 
-              {/* Recent Messages needing reply */}
+              {/* Quick actions */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <button onClick={() => setTab("social")} className="bg-white/5 border border-white/5 hover:border-primary/30 rounded-2xl p-5 text-left transition-all group">
+                  <Zap className="w-6 h-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                  <div className="font-semibold text-white">Social Sync</div>
+                  <div className="text-sm text-muted-foreground mt-1">Import posts from TikTok & X — no watermark</div>
+                  {socialConfig?.enabled && (
+                    <div className="mt-2 text-xs text-green-400 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" /> Auto-sync active
+                    </div>
+                  )}
+                </button>
+                <button onClick={() => setTab("github")} className="bg-white/5 border border-white/5 hover:border-purple-500/30 rounded-2xl p-5 text-left transition-all group">
+                  <Github className="w-6 h-6 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
+                  <div className="font-semibold text-white">Push to GitHub</div>
+                  <div className="text-sm text-muted-foreground mt-1">Backup & version your site code automatically</div>
+                </button>
+              </div>
+
+              {/* Awaiting Reply */}
               <div>
                 <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
                   <MessageSquare className="w-5 h-5 text-primary" /> Awaiting Reply
                 </h3>
                 <div className="space-y-3">
                   {messages.filter(m => m.status !== "replied" && m.status !== "free").slice(0, 3).map((m) => (
-                    <div key={m.id} className="bg-card/40 border border-white/5 rounded-xl p-4 flex items-start justify-between gap-4">
+                    <div key={m.id} className="bg-white/5 border border-white/5 rounded-xl p-4 flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium text-primary">{m.fanName}</span>
@@ -386,30 +525,27 @@ export default function Admin() {
                   {messages.filter(m => m.status !== "replied" && m.status !== "free").length === 0 && (
                     <div className="text-center py-8 text-muted-foreground text-sm border border-white/5 rounded-xl">
                       <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-400" />
-                      All messages replied!
+                      All caught up!
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Recent calls */}
+              {/* Pending calls */}
               <div>
                 <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
                   <Phone className="w-5 h-5 text-blue-400" /> Pending Calls
                 </h3>
                 <div className="space-y-3">
                   {calls.filter(c => c.status === "pending").slice(0, 3).map((c) => (
-                    <div key={c.id} className="bg-card/40 border border-white/5 rounded-xl p-4 flex items-start justify-between gap-4">
+                    <div key={c.id} className="bg-white/5 border border-white/5 rounded-xl p-4 flex items-start justify-between gap-4">
                       <div>
                         <div className="font-medium text-white">{c.fanName} — {c.durationMinutes} min</div>
                         <div className="text-sm text-muted-foreground">{new Date(c.preferredDate).toLocaleString()}</div>
-                        <div className="text-sm text-muted-foreground">{c.fanEmail}</div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => updateCallStatus(c.id, "confirmed")} className="bg-green-500/20 text-green-300 border border-green-500/20 hover:bg-green-500/30">
-                          Confirm
-                        </Button>
-                      </div>
+                      <Button size="sm" onClick={() => updateCallStatus(c.id, "confirmed")} className="bg-green-500/20 text-green-300 border border-green-500/20 hover:bg-green-500/30">
+                        Confirm
+                      </Button>
                     </div>
                   ))}
                   {calls.filter(c => c.status === "pending").length === 0 && (
@@ -420,12 +556,12 @@ export default function Admin() {
             </div>
           )}
 
-          {/* MESSAGES */}
+          {/* ─── MESSAGES ──────────────────────────────────────────── */}
           {tab === "messages" && (
             <div className="space-y-4">
               <h2 className="text-2xl font-serif font-bold text-white">Messages ({messages.length})</h2>
               {messages.map((m) => (
-                <div key={m.id} className="bg-card/40 border border-white/5 rounded-2xl p-5">
+                <div key={m.id} className="bg-white/5 border border-white/5 rounded-2xl p-5">
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -442,7 +578,7 @@ export default function Admin() {
                   {m.reply && (
                     <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-3">
                       <div className="flex items-center gap-1 text-xs text-primary mb-1">
-                        <Star className="w-3 h-3" /> Hannah's Reply
+                        <Star className="w-3 h-3" /> Your Reply
                       </div>
                       <p className="text-white/80 text-sm">{m.reply}</p>
                     </div>
@@ -450,7 +586,7 @@ export default function Admin() {
                   {m.status !== "replied" && (
                     <div className="flex gap-2">
                       <Textarea
-                        placeholder="Write your reply as Hannah..."
+                        placeholder="Write your reply…"
                         value={replyMap[m.id] || ""}
                         onChange={(e) => setReplyMap((p) => ({ ...p, [m.id]: e.target.value }))}
                         className="bg-black/50 border-white/10 text-white resize-none text-sm min-h-[80px] rounded-xl"
@@ -467,19 +603,17 @@ export default function Admin() {
                 </div>
               ))}
               {messages.length === 0 && (
-                <div className="text-center py-16 text-muted-foreground border border-white/5 rounded-2xl">
-                  No messages yet
-                </div>
+                <div className="text-center py-16 text-muted-foreground border border-white/5 rounded-2xl">No messages yet</div>
               )}
             </div>
           )}
 
-          {/* CALLS */}
+          {/* ─── CALLS ─────────────────────────────────────────────── */}
           {tab === "calls" && (
             <div className="space-y-4">
               <h2 className="text-2xl font-serif font-bold text-white">Call Bookings ({calls.length})</h2>
               {calls.map((c) => (
-                <div key={c.id} className="bg-card/40 border border-white/5 rounded-2xl p-5">
+                <div key={c.id} className="bg-white/5 border border-white/5 rounded-2xl p-5">
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -496,7 +630,7 @@ export default function Admin() {
                       <div className="text-white font-medium">{c.durationMinutes} minutes</div>
                     </div>
                     <div className="bg-black/40 rounded-xl p-3">
-                      <div className="text-xs text-muted-foreground mb-1">Preferred Time</div>
+                      <div className="text-xs text-muted-foreground mb-1">Preferred Date</div>
                       <div className="text-white font-medium">{new Date(c.preferredDate).toLocaleString()}</div>
                     </div>
                     {c.notes && (
@@ -517,10 +651,6 @@ export default function Admin() {
                         <CheckCircle className="w-4 h-4 mr-1" /> Mark Completed
                       </Button>
                     )}
-                    <a href={`https://wa.me/${c.fanEmail.replace(/\D/g, "")}?text=Hi ${encodeURIComponent(c.fanName)}! This is Hannah confirming your video call.`}
-                      target="_blank" rel="noreferrer">
-                      <Button size="sm" variant="outline" className="border-white/10 text-white/70">WhatsApp Fan</Button>
-                    </a>
                   </div>
                 </div>
               ))}
@@ -530,12 +660,12 @@ export default function Admin() {
             </div>
           )}
 
-          {/* REQUESTS */}
+          {/* ─── REQUESTS ──────────────────────────────────────────── */}
           {tab === "requests" && (
             <div className="space-y-4">
               <h2 className="text-2xl font-serif font-bold text-white">Custom Requests ({requests.length})</h2>
               {requests.map((r) => (
-                <div key={r.id} className="bg-card/40 border border-white/5 rounded-2xl p-5">
+                <div key={r.id} className="bg-white/5 border border-white/5 rounded-2xl p-5">
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -547,7 +677,7 @@ export default function Admin() {
                     </div>
                   </div>
                   <div className="bg-black/40 rounded-xl p-4">
-                    <div className="text-xs text-muted-foreground mb-1">Request Type: {r.requestType}</div>
+                    <div className="text-xs text-muted-foreground mb-1">Type: {r.requestType}</div>
                     <p className="text-white/90 text-sm">{r.description}</p>
                   </div>
                 </div>
@@ -558,12 +688,12 @@ export default function Admin() {
             </div>
           )}
 
-          {/* TIPS */}
+          {/* ─── TIPS ──────────────────────────────────────────────── */}
           {tab === "tips" && (
             <div className="space-y-4">
               <h2 className="text-2xl font-serif font-bold text-white">Tips & Gifts ({tips.length})</h2>
               {tips.map((t) => (
-                <div key={t.id} className="bg-card/40 border border-white/5 rounded-2xl p-5 flex items-center justify-between">
+                <div key={t.id} className="bg-white/5 border border-white/5 rounded-2xl p-5 flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold text-white">{t.fanName}</span>
@@ -581,15 +711,13 @@ export default function Admin() {
             </div>
           )}
 
-          {/* FEED */}
+          {/* ─── FEED ──────────────────────────────────────────────── */}
           {tab === "feed" && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-serif font-bold text-white">Social Feed Manager</h2>
-
-              {/* Add new post */}
-              <div className="bg-card/40 border border-white/10 rounded-2xl p-6">
+              <h2 className="text-2xl font-serif font-bold text-white">Feed Manager</h2>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <ImagePlus className="w-5 h-5 text-primary" /> Add New Post
+                  <ImagePlus className="w-5 h-5 text-primary" /> Add Post Manually
                 </h3>
                 <div className="space-y-4">
                   <Input
@@ -616,12 +744,8 @@ export default function Admin() {
                       <option value="custom">Custom Upload</option>
                     </select>
                     <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={newPost.isPrivate}
-                        onChange={(e) => setNewPost((p) => ({ ...p, isPrivate: e.target.checked }))}
-                        className="rounded"
-                      />
+                      <input type="checkbox" checked={newPost.isPrivate}
+                        onChange={(e) => setNewPost((p) => ({ ...p, isPrivate: e.target.checked }))} className="rounded" />
                       Private (VIP only)
                     </label>
                   </div>
@@ -636,7 +760,6 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Existing posts */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {posts.map((p) => (
                   <div key={p.id} className="relative rounded-xl overflow-hidden border border-white/10 group aspect-square">
@@ -650,11 +773,8 @@ export default function Admin() {
                     )}
                     <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-200">
                       {p.caption && <p className="text-white text-xs mb-2 line-clamp-2">{p.caption}</p>}
-                      <Button
-                        size="sm"
-                        onClick={() => deletePost(p.id)}
-                        className="w-full bg-red-500/20 text-red-300 border border-red-500/20 hover:bg-red-500/40 text-xs"
-                      >
+                      <Button size="sm" onClick={() => deletePost(p.id)}
+                        className="w-full bg-red-500/20 text-red-300 border border-red-500/20 hover:bg-red-500/40 text-xs">
                         <Trash2 className="w-3 h-3 mr-1" /> Remove
                       </Button>
                     </div>
@@ -662,7 +782,205 @@ export default function Admin() {
                 ))}
                 {posts.length === 0 && (
                   <div className="col-span-full text-center py-16 text-muted-foreground border border-white/5 rounded-2xl">
-                    No posts yet. Add your first post above.
+                    No posts yet. Use Social Sync or add manually above.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ─── SOCIAL SYNC ───────────────────────────────────────── */}
+          {tab === "social" && (
+            <div className="space-y-6 max-w-2xl">
+              <div>
+                <h2 className="text-2xl font-serif font-bold text-white">Social Sync</h2>
+                <p className="text-muted-foreground text-sm mt-1">Auto-import content from TikTok &amp; X — watermark-free.</p>
+              </div>
+
+              {/* Status card */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${socialConfig?.enabled ? "bg-green-500/20 border border-green-500/30" : "bg-white/10 border border-white/10"}`}>
+                      <Zap className={`w-5 h-5 ${socialConfig?.enabled ? "text-green-400" : "text-muted-foreground"}`} />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-white">Auto-Sync</div>
+                      <div className="text-xs text-muted-foreground">
+                        {socialConfig?.enabled ? `Running every ${socialConfig.intervalHours}h` : "Currently off"}
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={toggleAutoSync} className="text-muted-foreground hover:text-white transition-colors">
+                    {socialConfig?.enabled
+                      ? <ToggleRight className="w-8 h-8 text-green-400" />
+                      : <ToggleLeft className="w-8 h-8" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Credentials status */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
+                <h3 className="font-semibold text-white flex items-center gap-2"><Settings className="w-4 h-4" /> API Keys Status</h3>
+                <div className="space-y-2">
+                  {[
+                    { label: "X Bearer Token (X_BEARER_TOKEN)", ok: socialConfig?.hasXToken, docs: "https://developer.twitter.com/en/docs/authentication/oauth-2-0/bearer-tokens" },
+                    { label: "RapidAPI Key (RAPIDAPI_KEY) — for TikTok", ok: socialConfig?.hasRapidApiKey, docs: "https://rapidapi.com/tikwm-tikwm-default/api/tiktok-scraper7" },
+                  ].map((k) => (
+                    <div key={k.label} className="flex items-center justify-between gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        {k.ok
+                          ? <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                          : <AlertCircle className="w-4 h-4 text-yellow-400 shrink-0" />}
+                        <span className={k.ok ? "text-white/80" : "text-yellow-400"}>{k.label}</span>
+                      </div>
+                      {!k.ok && (
+                        <a href={k.docs} target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 shrink-0 hover:underline">
+                          Get key <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      {k.ok && <span className="text-green-400 text-xs">Set ✓</span>}
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground pt-2">Add keys in Replit Secrets (the lock icon in the left sidebar).</p>
+                </div>
+              </div>
+
+              {/* Handle settings */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+                <h3 className="font-semibold text-white flex items-center gap-2"><Settings className="w-4 h-4" /> Account Settings</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">X / Twitter handle or profile URL</label>
+                    <Input
+                      placeholder="@hannahbrooksxx  or  https://x.com/hannahbrooksxx"
+                      value={xHandleInput}
+                      onChange={(e) => setXHandleInput(e.target.value)}
+                      className="bg-black/50 border-white/10 text-white rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">TikTok handle or profile URL</label>
+                    <Input
+                      placeholder="@hannahbrooksxxx  or  https://tiktok.com/@hannahbrooksxxx"
+                      value={tiktokHandleInput}
+                      onChange={(e) => setTiktokHandleInput(e.target.value)}
+                      className="bg-black/50 border-white/10 text-white rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" /> Auto-sync every (hours)
+                    </label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="24"
+                      value={syncIntervalInput}
+                      onChange={(e) => setSyncIntervalInput(e.target.value)}
+                      className="bg-black/50 border-white/10 text-white rounded-xl w-28"
+                    />
+                  </div>
+                  <Button onClick={saveSocialConfig} className="bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/10">
+                    Save Settings
+                  </Button>
+                </div>
+              </div>
+
+              {/* Manual sync buttons */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+                <h3 className="font-semibold text-white flex items-center gap-2"><Play className="w-4 h-4" /> Manual Sync</h3>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    onClick={() => syncPlatform("x")}
+                    disabled={syncingX || syncingAll}
+                    className="bg-sky-500/20 text-sky-300 border border-sky-500/20 hover:bg-sky-500/30 rounded-xl"
+                  >
+                    <Twitter className="w-4 h-4 mr-2" />
+                    {syncingX ? "Syncing X..." : "Sync X / Twitter"}
+                  </Button>
+                  <Button
+                    onClick={() => syncPlatform("tiktok")}
+                    disabled={syncingTikTok || syncingAll}
+                    className="bg-pink-500/20 text-pink-300 border border-pink-500/20 hover:bg-pink-500/30 rounded-xl"
+                  >
+                    <Music2 className="w-4 h-4 mr-2" />
+                    {syncingTikTok ? "Syncing TikTok..." : "Sync TikTok"}
+                  </Button>
+                  <Button
+                    onClick={() => syncPlatform("all")}
+                    disabled={syncingAll || syncingX || syncingTikTok}
+                    className="bg-primary/20 text-primary border border-primary/20 hover:bg-primary/30 rounded-xl"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    {syncingAll ? "Syncing all..." : "Sync All"}
+                  </Button>
+                </div>
+
+                {/* Last sync result */}
+                {lastSyncResult && (
+                  <div className="bg-black/40 rounded-xl p-4 text-xs font-mono text-white/70 overflow-x-auto">
+                    <div className="text-muted-foreground mb-1">Last sync result:</div>
+                    <pre>{JSON.stringify(lastSyncResult, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ─── GITHUB ────────────────────────────────────────────── */}
+          {tab === "github" && (
+            <div className="space-y-6 max-w-2xl">
+              <div>
+                <h2 className="text-2xl font-serif font-bold text-white">Push to GitHub</h2>
+                <p className="text-muted-foreground text-sm mt-1">Backup your entire site to GitHub with one click.</p>
+              </div>
+
+              {/* Setup guide */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+                <h3 className="font-semibold text-white flex items-center gap-2"><Settings className="w-4 h-4" /> Setup (one time)</h3>
+                <ol className="space-y-3 text-sm text-muted-foreground list-none">
+                  {[
+                    { n: 1, text: "Create a new GitHub repository (public or private)." },
+                    { n: 2, text: "Go to GitHub → Settings → Developer settings → Personal access tokens → Generate new token. Give it repo access." },
+                    { n: 3, text: 'In Replit Secrets, add GITHUB_REMOTE with value: https://YOUR_TOKEN@github.com/yourusername/your-repo.git' },
+                  ].map((s) => (
+                    <li key={s.n} className="flex gap-3">
+                      <span className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold shrink-0 text-xs">{s.n}</span>
+                      <span>{s.text}</span>
+                    </li>
+                  ))}
+                </ol>
+                <a href="https://github.com/new" target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors">
+                  <ExternalLink className="w-3.5 h-3.5" /> Create GitHub repo
+                </a>
+              </div>
+
+              {/* Push button */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+                <h3 className="font-semibold text-white flex items-center gap-2"><Github className="w-4 h-4" /> Push Now</h3>
+                <p className="text-sm text-muted-foreground">This commits all current code and pushes it to your GitHub repo.</p>
+                <Button
+                  onClick={pushToGitHub}
+                  disabled={githubPushing}
+                  className="bg-purple-500/20 text-purple-300 border border-purple-500/20 hover:bg-purple-500/30 rounded-xl h-12 px-6 font-semibold"
+                >
+                  <Github className="w-5 h-5 mr-2" />
+                  {githubPushing ? "Pushing..." : "Push to GitHub"}
+                </Button>
+
+                {githubResult && (
+                  <div className={`rounded-xl p-4 text-sm ${githubResult["ok"] ? "bg-green-500/10 border border-green-500/20 text-green-300" : "bg-red-500/10 border border-red-500/20 text-red-300"}`}>
+                    {githubResult.ok ? (
+                      <div className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Successfully pushed to GitHub!</div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2"><AlertCircle className="w-4 h-4" /> Push failed</div>
+                        <div className="text-xs font-mono opacity-80">{String(githubResult.error ?? "")}</div>
+                        {githubResult.setup ? <div className="text-xs mt-2 opacity-70">{String(githubResult.setup)}</div> : null}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
