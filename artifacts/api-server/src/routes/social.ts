@@ -256,8 +256,20 @@ router.post("/social/github/push", adminAuth, async (req, res): Promise<void> =>
     await execAsync("git add -A");
     const timestamp = new Date().toISOString();
     await execAsync(`git commit -m "Auto-sync [${target}] ${timestamp}" --allow-empty`);
-    // Repack all objects to ensure a complete pack file is sent to remote
-    await execAsync("git repack -a -d -f --depth=250 --window=250").catch(() => null);
+
+    // For the admin repo, delete the remote main branch first via GitHub API
+    // to avoid "did not receive expected object" errors from diverged history
+    if (target === "admin") {
+      await fetch("https://api.github.com/repos/daviddan-241/Admin/git/refs/heads/main", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "hannah-brooks-admin",
+        },
+      }).catch(() => null); // Ignore errors (branch may not exist)
+      // Small delay to let GitHub process the deletion
+      await new Promise(r => setTimeout(r, 2000));
+    }
 
     const { stdout, stderr } = await execAsync(`git push "${remote}" HEAD:main --force --no-thin`);
     res.json({ success: true, target, stdout, stderr, timestamp });
