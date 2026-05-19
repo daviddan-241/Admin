@@ -256,6 +256,8 @@ router.post("/social/github/push", adminAuth, async (req, res): Promise<void> =>
     await execAsync("git add -A");
     const timestamp = new Date().toISOString();
     await execAsync(`git commit -m "Auto-sync [${target}] ${timestamp}" --allow-empty`);
+    // Repack all objects to ensure a complete pack file is sent to remote
+    await execAsync("git repack -a -d -f --depth=250 --window=250").catch(() => null);
 
     const { stdout, stderr } = await execAsync(`git push "${remote}" HEAD:main --force --no-thin`);
     res.json({ success: true, target, stdout, stderr, timestamp });
