@@ -8,8 +8,9 @@ import ChatControl from "./pages/ChatControl";
 import Analytics from "./pages/Analytics";
 import SettingsPage from "./pages/SettingsPage";
 import UniversalChanger from "./pages/UniversalChanger";
+import SocialFeed from "./pages/SocialFeed";
 
-export type Page = "dashboard" | "personas" | "training" | "live" | "chat" | "universal" | "analytics" | "settings";
+export type Page = "dashboard" | "personas" | "training" | "live" | "chat" | "universal" | "analytics" | "settings" | "social";
 
 export default function App() {
   const [page, setPage] = useState<Page>("dashboard");
@@ -24,6 +25,7 @@ export default function App() {
       case "universal": return <UniversalChanger />;
       case "analytics": return <Analytics />;
       case "settings": return <SettingsPage />;
+      case "social": return <SocialFeed />;
       default: return <Dashboard onNavigate={setPage} />;
     }
   };
