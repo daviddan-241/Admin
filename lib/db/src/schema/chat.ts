@@ -6,6 +6,7 @@ export const chatSessionsTable = pgTable("chat_sessions", {
   fanEmail: text("fan_email").notNull(),
   fanName: text("fan_name").notNull(),
   fanToken: uuid("fan_token").notNull().unique().default(sql`gen_random_uuid()`),
+  fanAvatarUrl: text("fan_avatar_url"),
   freeUsed: integer("free_used").notNull().default(0),
   lastMessageAt: timestamp("last_message_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -14,7 +15,7 @@ export const chatSessionsTable = pgTable("chat_sessions", {
 export const chatMessagesTable = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
   sessionId: integer("session_id").notNull().references(() => chatSessionsTable.id),
-  senderType: text("sender_type").notNull(), // 'fan' | 'hannah'
+  senderType: text("sender_type").notNull(),
   message: text("message").notNull(),
   amountPaid: numeric("amount_paid", { precision: 10, scale: 2 }).notNull().default("0"),
   txRef: text("tx_ref").unique(),

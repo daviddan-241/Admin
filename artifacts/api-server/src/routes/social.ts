@@ -53,157 +53,98 @@ async function syncX(handle: string, bearerToken: string): Promise<{ synced: num
 
   let synced = 0;
   for (const tweet of tweetsData.data ?? []) {
-    const mediaKeys = tweet.attachments?.media_keys ?? [];
-    for (const key of mediaKeys) {
-      const imageUrl = mediaMap.get(key);
-      if (!imageUrl) continue;
-      const existing = await db.select().from(postsTable).where(eq(postsTable.imageUrl, imageUrl)).limit(1);
-      if (existing.length > 0) continue;
-      await db.insert(postsTable).values({
-        imageUrl,
-        caption: tweet.text,
-        platform: "twitter",
-        isPrivate: false,
-        watermark: false,
-      });
-      synced++;
-    }
+    const existing = await db.select().from(postsTable).where(eq(postsTable.externalId, tweet.id)).limit(1);
+    if (existing[0]) continue;
+    const imageUrl = tweet.attachments?.media_keys?.[0] ? mediaMap.get(tweet.attachments.media_keys[0]) ?? null : null;
+    await db.insert(postsTable).values({
+      platform: "x",
+      externalId: tweet.id,
+      content: tweet.text,
+      imageUrl,
+      isVip: false,
+      publishedAt: new Date(),
+    });
+    synced++;
   }
   return { synced, errors };
 }
 
-// ── Helper: fetch & save TikTok posts (via RapidAPI scraper — no watermark) ─
+// ── Helper: fetch & save TikTok posts ─────────────────────────────────────
 async function syncTikTok(handle: string, rapidApiKey: string): Promise<{ synced: number; errors: string[] }> {
   const errors: string[] = [];
-  const cleanHandle = handle.replace(/^@/, "").replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/i, "").split("?")[0];
+  const cleanHandle = handle.replace(/^@/, "");
 
-  try {
-    // Try RapidAPI TikTok scraper
-    const res = await fetch(
-      `https://tiktok-scraper7.p.rapidapi.com/user/posts?unique_id=${encodeURIComponent(cleanHandle)}&count=20&cursor=0`,
-      {
-        headers: {
-          "x-rapidapi-key": rapidApiKey,
-          "x-rapidapi-host": "tiktok-scraper7.p.rapidapi.com",
-        },
-      }
-    );
-    if (!res.ok) {
-      errors.push(`TikTok API error: ${res.status} ${await res.text()}`);
-      return { synced: 0, errors };
-    }
-    const data = await res.json() as {
-      data?: {
-        videos?: {
-          video_id: string;
-          title: string;
-          cover: string;
-          play: string;
-          wmplay?: string;
-          nowatermark?: string;
-        }[];
-      };
-      code?: number;
-    };
-
-    const videos = data?.data?.videos ?? [];
-    if (videos.length === 0) {
-      errors.push("No TikTok videos found. Check the handle.");
-      return { synced: 0, errors };
-    }
-
-    let synced = 0;
-    for (const vid of videos) {
-      // Prefer no-watermark cover image
-      const imageUrl = vid.cover;
-      if (!imageUrl) continue;
-      const existing = await db.select().from(postsTable).where(eq(postsTable.imageUrl, imageUrl)).limit(1);
-      if (existing.length > 0) continue;
-      await db.insert(postsTable).values({
-        imageUrl,
-        caption: vid.title || null,
-        platform: "tiktok",
-        isPrivate: false,
-        watermark: false,
-      });
-      synced++;
-    }
-    return { synced, errors };
-  } catch (e) {
-    errors.push(`TikTok sync error: ${e instanceof Error ? e.message : String(e)}`);
+  const res = await fetch(
+    `https://tiktok-scraper7.p.rapidapi.com/user/posts?unique_id=${encodeURIComponent(cleanHandle)}&count=20`,
+    { headers: { "X-RapidAPI-Key": rapidApiKey, "X-RapidAPI-Host": "tiktok-scraper7.p.rapidapi.com" } }
+  );
+  if (!res.ok) {
+    errors.push(`TikTok fetch failed: ${await res.text()}`);
     return { synced: 0, errors };
   }
+
+  const data = await res.json() as {
+    data?: { videos?: { video_id: string; title: string; cover: string; play: string }[] };
+  };
+
+  let synced = 0;
+  for (const video of data.data?.videos ?? []) {
+    const existing = await db.select().from(postsTable).where(eq(postsTable.externalId, video.video_id)).limit(1);
+    if (existing[0]) continue;
+    await db.insert(postsTable).values({
+      platform: "tiktok",
+      externalId: video.video_id,
+      content: video.title,
+      imageUrl: video.cover,
+      videoUrl: video.play,
+      isVip: false,
+      publishedAt: new Date(),
+    });
+    synced++;
+  }
+  return { synced, errors };
 }
 
-// ── Run all enabled syncs ─────────────────────────────────────────────────
-async function runAllSyncs(): Promise<{ x: { synced: number; errors: string[] }; tiktok: { synced: number; errors: string[] } }> {
-  const bearerToken = process.env.X_BEARER_TOKEN || "";
-  const rapidApiKey = process.env.RAPIDAPI_KEY || "";
-
-  const xResult = syncConfig.xHandle && bearerToken
-    ? await syncX(syncConfig.xHandle, bearerToken)
-    : { synced: 0, errors: ["X_BEARER_TOKEN or handle not set"] };
-
-  const tiktokResult = syncConfig.tiktokHandle && rapidApiKey
-    ? await syncTikTok(syncConfig.tiktokHandle, rapidApiKey)
-    : { synced: 0, errors: ["RAPIDAPI_KEY or TikTok handle not set"] };
-
-  return { x: xResult, tiktok: tiktokResult };
+// ── Run all syncs ─────────────────────────────────────────────────────────
+async function runAllSyncs() {
+  const xToken = process.env.X_BEARER_TOKEN || "";
+  const rapidKey = process.env.RAPIDAPI_KEY || "";
+  const results: Record<string, unknown> = {};
+  if (xToken && syncConfig.xHandle) results.x = await syncX(syncConfig.xHandle, xToken);
+  if (rapidKey && syncConfig.tiktokHandle) results.tiktok = await syncTikTok(syncConfig.tiktokHandle, rapidKey);
+  return results;
 }
 
-function startScheduler() {
+// ── Restart scheduler ─────────────────────────────────────────────────────
+function restartScheduler() {
   if (syncInterval) clearInterval(syncInterval);
+  syncInterval = null;
   if (!syncConfig.enabled) return;
   const ms = syncConfig.intervalHours * 60 * 60 * 1000;
-  syncInterval = setInterval(async () => {
-    console.log("[social-sync] Auto-sync running...");
-    const result = await runAllSyncs();
-    console.log("[social-sync] Done:", JSON.stringify(result));
-  }, ms);
-  console.log(`[social-sync] Scheduler started every ${syncConfig.intervalHours}h`);
+  syncInterval = setInterval(runAllSyncs, ms);
 }
 
-// ── GET sync config ────────────────────────────────────────────────────────
-router.get("/social/config", adminAuth, (_req, res) => {
-  res.json({
-    ...syncConfig,
-    hasXToken: !!process.env.X_BEARER_TOKEN,
-    hasRapidApiKey: !!process.env.RAPIDAPI_KEY,
-  });
+// ── GET sync config ───────────────────────────────────────────────────────
+router.get("/social/sync/config", adminAuth, (_req, res) => {
+  res.json(syncConfig);
 });
 
-// ── UPDATE sync config ─────────────────────────────────────────────────────
-router.post("/social/config", adminAuth, (req, res) => {
+// ── PATCH sync config ─────────────────────────────────────────────────────
+router.patch("/social/sync/config", adminAuth, (req, res) => {
   const body = req.body as Partial<typeof syncConfig>;
-  if (typeof body.enabled === "boolean") syncConfig.enabled = body.enabled;
-  if (typeof body.intervalHours === "number" && body.intervalHours >= 1) syncConfig.intervalHours = body.intervalHours;
-  if (typeof body.xHandle === "string") syncConfig.xHandle = body.xHandle;
-  if (typeof body.tiktokHandle === "string") syncConfig.tiktokHandle = body.tiktokHandle;
-  startScheduler();
-  res.json({ ok: true, config: syncConfig });
+  syncConfig = { ...syncConfig, ...body };
+  restartScheduler();
+  res.json(syncConfig);
 });
 
-// ── Manual sync X ─────────────────────────────────────────────────────────
+// ── Manual X sync ─────────────────────────────────────────────────────────
 router.post("/social/sync/x", adminAuth, async (req, res): Promise<void> => {
-  const body = req.body as { handle?: string };
-  const handle = body.handle || syncConfig.xHandle || process.env.X_USERNAME || "";
+  const { handle } = req.body as { handle?: string };
   const bearerToken = process.env.X_BEARER_TOKEN || "";
-
-  if (!bearerToken) {
-    res.status(400).json({
-      error: "X_BEARER_TOKEN not set.",
-      setup: "Add X_BEARER_TOKEN in Replit Secrets (developer.twitter.com → create app → Bearer Token).",
-    });
-    return;
-  }
-  if (!handle) {
-    res.status(400).json({ error: "No X handle provided. Enter it in the Social Sync settings." });
-    return;
-  }
-
-  if (handle) syncConfig.xHandle = handle;
-
+  if (!handle) { res.status(400).json({ error: "handle required" }); return; }
+  if (!bearerToken) { res.status(400).json({ error: "X_BEARER_TOKEN not set" }); return; }
   try {
+    syncConfig.xHandle = handle;
     const result = await syncX(handle, bearerToken);
     res.json(result);
   } catch (e: unknown) {
@@ -211,28 +152,15 @@ router.post("/social/sync/x", adminAuth, async (req, res): Promise<void> => {
   }
 });
 
-// ── Manual sync TikTok ────────────────────────────────────────────────────
+// ── Manual TikTok sync ────────────────────────────────────────────────────
 router.post("/social/sync/tiktok", adminAuth, async (req, res): Promise<void> => {
-  const body = req.body as { handle?: string };
-  const handle = body.handle || syncConfig.tiktokHandle || process.env.TIKTOK_USERNAME || "";
-  const rapidApiKey = process.env.RAPIDAPI_KEY || "";
-
-  if (!rapidApiKey) {
-    res.status(400).json({
-      error: "RAPIDAPI_KEY not set.",
-      setup: "Add RAPIDAPI_KEY in Replit Secrets. Subscribe to 'TikTok Scraper' on rapidapi.com (free tier available).",
-    });
-    return;
-  }
-  if (!handle) {
-    res.status(400).json({ error: "No TikTok handle provided. Enter it in the Social Sync settings." });
-    return;
-  }
-
-  if (handle) syncConfig.tiktokHandle = handle;
-
+  const { handle } = req.body as { handle?: string };
+  const rapidKey = process.env.RAPIDAPI_KEY || "";
+  if (!handle) { res.status(400).json({ error: "handle required" }); return; }
+  if (!rapidKey) { res.status(400).json({ error: "RAPIDAPI_KEY not set" }); return; }
   try {
-    const result = await syncTikTok(handle, rapidApiKey);
+    syncConfig.tiktokHandle = handle;
+    const result = await syncTikTok(handle, rapidKey);
     res.json(result);
   } catch (e: unknown) {
     res.status(500).json({ error: `Sync failed: ${e instanceof Error ? e.message : String(e)}` });
@@ -262,20 +190,24 @@ router.post("/social/github/push", adminAuth, async (_req, res): Promise<void> =
     const timestamp = new Date().toISOString();
     await execAsync(`git commit -m "Auto-sync update ${timestamp}" --allow-empty`);
 
-    const remote = process.env.GITHUB_REMOTE || "";
+    // Build remote: prefer GITHUB_REMOTE env, else auto-construct from GITHUB_PERSONAL_ACCESS_TOKEN
+    const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN || "";
+    const remote = process.env.GITHUB_REMOTE ||
+      (token ? `https://${token}@github.com/daviddan-241/Hannah-brooks-love.git` : "");
+
     if (!remote) {
       res.status(400).json({
-        error: "GITHUB_REMOTE not set.",
-        setup: "Add GITHUB_REMOTE in Replit Secrets with your GitHub repo URL (e.g. https://TOKEN@github.com/user/repo.git).",
+        error: "GitHub token not set.",
+        setup: "GITHUB_PERSONAL_ACCESS_TOKEN is available in Replit secrets — ensure it has repo scope.",
       });
       return;
     }
 
-    const { stdout, stderr } = await execAsync(`git push ${remote} HEAD:main --force`);
-    res.json({ ok: true, stdout, stderr });
+    const { stdout, stderr } = await execAsync(`git push "${remote}" HEAD:main --force`);
+    res.json({ success: true, stdout, stderr, timestamp });
   } catch (e: unknown) {
-    const err = e as { stdout?: string; stderr?: string; message?: string };
-    res.status(500).json({ error: err.message, stdout: err.stdout, stderr: err.stderr });
+    const err = e instanceof Error ? e.message : String(e);
+    res.status(500).json({ error: `Git push failed: ${err}`, stdout: (e as any).stdout, stderr: (e as any).stderr });
   }
 });
 
