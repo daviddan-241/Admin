@@ -17,14 +17,14 @@ type Persona = {
 };
 
 const DEMO: Persona[] = [
-  { id: "1", name: "Hannah (Main)", description: "Primary persona — luxury British creator", status: "active", voiceProfile: "hannah-v3.pth", faceModel: "hannah-face-v2.onnx", personality: "Warm, flirty, British accent. Loves fans. Calls everyone 'darling'. Teases but never over-promises. Premium creator energy.", replyMode: "autonomous", messagesHandled: 1247, accuracy: 96, color: "var(--neon)" },
+  { id: "1", name: "Hannah (Main)", description: "Primary persona — luxury British creator", status: "active", voiceProfile: "hannah-v3.pth", faceModel: "hannah-face-v2.onnx", personality: "Warm, flirty, British accent. Loves fans. Calls everyone 'darling'. Teases but never over-promises. Premium creator energy.", replyMode: "autonomous", messagesHandled: 1247, accuracy: 96, color: "var(--gold)" },
   { id: "2", name: "Hannah (Business)", description: "Professional tone for brand deals", status: "idle", voiceProfile: "hannah-v3.pth", faceModel: "hannah-face-v2.onnx", personality: "Professional, confident, concise. Uses formal language for brand deals and business inquiries. No flirting.", replyMode: "approval", messagesHandled: 89, accuracy: 94, color: "#00ff88" },
-  { id: "3", name: "Aria (Alt)", description: "Alternative persona for separate brand", status: "idle", voiceProfile: "aria-v1.pth", faceModel: "aria-face-v1.onnx", personality: "Mysterious, artistic, European accent. Fashion-forward. Intellectual discussions.", replyMode: "off", messagesHandled: 234, accuracy: 91, color: "var(--neon2)" },
+  { id: "3", name: "Aria (Alt)", description: "Alternative persona for separate brand", status: "idle", voiceProfile: "aria-v1.pth", faceModel: "aria-face-v1.onnx", personality: "Mysterious, artistic, European accent. Fashion-forward. Intellectual discussions.", replyMode: "off", messagesHandled: 234, accuracy: 91, color: "var(--gold2)" },
 ];
 
 const statusColor: Record<string, string> = {
   active: "#00ff88",
-  idle: "rgba(255,255,255,0.3)",
+  idle: "rgba(232,223,200,0.35)",
   training: "#ffaa00",
 };
 
@@ -46,7 +46,7 @@ export default function PersonaManager() {
           <p className="text-white/40 text-sm mt-1">Create, configure, and switch between AI personas</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm text-black"
-          style={{ background: "linear-gradient(135deg,var(--neon),var(--neon2))" }}>
+          style={{ background: "linear-gradient(135deg,var(--gold),var(--gold2))" }}>
           <Plus size={16} /> New Persona
         </button>
       </div>
@@ -144,7 +144,7 @@ export default function PersonaManager() {
                   {editing && (
                     <button onClick={() => setEditing(false)}
                       className="text-xs px-3 py-1 rounded-lg font-bold text-black"
-                      style={{ background: "linear-gradient(135deg,var(--neon),var(--neon2))" }}>
+                      style={{ background: "linear-gradient(135deg,var(--gold),var(--gold2))" }}>
                       Save
                     </button>
                   )}
@@ -168,7 +168,7 @@ export default function PersonaManager() {
                 {[
                   { id: "autonomous", label: "Autonomous", desc: "Replies automatically", color: "#ff006e" },
                   { id: "approval", label: "Human Review", desc: "You approve each reply", color: "#ffaa00" },
-                  { id: "off", label: "Off", desc: "No auto-replies", color: "rgba(255,255,255,0.3)" },
+                  { id: "off", label: "Off", desc: "No auto-replies", color: "rgba(232,223,200,0.35)" },
                 ].map((m) => (
                   <button key={m.id}
                     className="p-3 rounded-xl text-left transition-all"

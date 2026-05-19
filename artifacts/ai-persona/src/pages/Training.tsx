@@ -55,31 +55,31 @@ export default function Training() {
               Train Another
             </button>
             <button className="px-5 py-2.5 rounded-xl text-sm font-bold text-black"
-              style={{ background: "linear-gradient(135deg,var(--neon),var(--neon2))" }}>
+              style={{ background: "linear-gradient(135deg,var(--gold),var(--gold2))" }}>
               <Play size={14} className="inline mr-2" /> Go Live Now
             </button>
           </div>
         </GlassCard>
       ) : step === "processing" ? (
         <div className="space-y-4">
-          <GlassCard className="p-6" style={{ border: "1px solid rgba(0,245,255,0.2)" } as React.CSSProperties}>
+          <GlassCard className="p-6" style={{ border: "1px solid rgba(201,168,76,0.2)" } as React.CSSProperties}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold text-white">Training in Progress</h2>
-              <span className="mono text-sm font-bold" style={{ color: "var(--neon)" }}>{Math.floor(progress)}%</span>
+              <span className="mono text-sm font-bold" style={{ color: "var(--gold)" }}>{Math.floor(progress)}%</span>
             </div>
             <div className="h-2 rounded-full mb-6" style={{ background: "rgba(255,255,255,0.06)" }}>
               <div className="h-full rounded-full transition-all duration-300"
-                style={{ width: `${progress}%`, background: "linear-gradient(90deg,var(--neon),var(--neon2))", boxShadow: "0 0 10px rgba(0,245,255,0.5)" }} />
+                style={{ width: `${progress}%`, background: "linear-gradient(90deg,var(--gold),var(--gold2))", boxShadow: "0 0 10px rgba(201,168,76,0.5)" }} />
             </div>
             <div className="space-y-3">
               {TRAIN_STAGES.map((s, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all ${s.done ? "bg-green-400/20 text-green-400" : s.active ? "" : "opacity-30 text-white/30"}`}
-                    style={s.active ? { background: "rgba(0,245,255,0.15)", color: "var(--neon)", animation: "pulse 1.5s infinite" } : {}}>
+                    style={s.active ? { background: "rgba(201,168,76,0.15)", color: "var(--gold)", animation: "pulse 1.5s infinite" } : {}}>
                     {s.done ? <CheckCircle size={12} /> : s.icon}
                   </div>
                   <span className={s.done ? "text-white/60 line-through" : s.active ? "text-white" : "text-white/30"}>{s.label}</span>
-                  {s.active && <span className="mono text-xs animate-pulse" style={{ color: "var(--neon)" }}>processing…</span>}
+                  {s.active && <span className="mono text-xs animate-pulse" style={{ color: "var(--gold)" }}>processing…</span>}
                   {s.done && <span className="text-green-400 text-xs mono">✓</span>}
                 </div>
               ))}
@@ -92,13 +92,13 @@ export default function Training() {
           {/* Video upload */}
           <GlassCard className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Video size={18} style={{ color: "var(--neon)" }} />
+              <Video size={18} style={{ color: "var(--gold)" }} />
               <h2 className="font-bold text-white">Video Samples</h2>
               <span className="text-xs text-white/30">2–10 videos required</span>
             </div>
             <div
               className="rounded-xl border-2 border-dashed p-8 text-center mb-4 transition-all cursor-pointer"
-              style={{ borderColor: dragging === "video" ? "var(--neon)" : "rgba(255,255,255,0.1)", background: dragging === "video" ? "rgba(0,245,255,0.05)" : "transparent" }}
+              style={{ borderColor: dragging === "video" ? "var(--gold)" : "rgba(255,255,255,0.1)", background: dragging === "video" ? "rgba(201,168,76,0.05)" : "transparent" }}
               onDragOver={(e) => { e.preventDefault(); setDragging("video"); }}
               onDragLeave={() => setDragging(null)}
               onDrop={(e) => { e.preventDefault(); setDragging(null); const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("video")); setVideoFiles(p => [...p, ...files]); }}
@@ -112,8 +112,8 @@ export default function Training() {
             </div>
             {videoFiles.map((f, i) => (
               <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2 text-sm"
-                style={{ background: "rgba(0,245,255,0.05)", border: "1px solid rgba(0,245,255,0.1)" }}>
-                <Video size={14} style={{ color: "var(--neon)" }} />
+                style={{ background: "rgba(201,168,76,0.05)", border: "1px solid rgba(201,168,76,0.1)" }}>
+                <Video size={14} style={{ color: "var(--gold)" }} />
                 <span className="text-white/70 flex-1 truncate">{f.name}</span>
                 <span className="text-white/30 text-xs">{(f.size / 1024 / 1024).toFixed(1)}MB</span>
                 <button onClick={() => setVideoFiles(p => p.filter((_, j) => j !== i))} className="text-white/30 hover:text-red-400">
@@ -129,13 +129,13 @@ export default function Training() {
           {/* Audio upload */}
           <GlassCard className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Mic size={18} style={{ color: "var(--neon2)" }} />
+              <Mic size={18} style={{ color: "var(--gold2)" }} />
               <h2 className="font-bold text-white">Voice Samples</h2>
               <span className="text-xs text-white/30">1–5 minutes ideal</span>
             </div>
             <div
               className="rounded-xl border-2 border-dashed p-8 text-center mb-4 transition-all cursor-pointer"
-              style={{ borderColor: dragging === "audio" ? "var(--neon2)" : "rgba(255,255,255,0.1)", background: dragging === "audio" ? "rgba(191,0,255,0.05)" : "transparent" }}
+              style={{ borderColor: dragging === "audio" ? "var(--gold2)" : "rgba(255,255,255,0.1)", background: dragging === "audio" ? "rgba(240,208,128,0.05)" : "transparent" }}
               onDragOver={(e) => { e.preventDefault(); setDragging("audio"); }}
               onDragLeave={() => setDragging(null)}
               onDrop={(e) => { e.preventDefault(); setDragging(null); const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("audio")); setAudioFiles(p => [...p, ...files]); }}
@@ -149,8 +149,8 @@ export default function Training() {
             </div>
             {audioFiles.map((f, i) => (
               <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2 text-sm"
-                style={{ background: "rgba(191,0,255,0.05)", border: "1px solid rgba(191,0,255,0.1)" }}>
-                <Mic size={14} style={{ color: "var(--neon2)" }} />
+                style={{ background: "rgba(240,208,128,0.05)", border: "1px solid rgba(240,208,128,0.1)" }}>
+                <Mic size={14} style={{ color: "var(--gold2)" }} />
                 <span className="text-white/70 flex-1 truncate">{f.name}</span>
                 <span className="text-white/30 text-xs">{(f.size / 1024 / 1024).toFixed(1)}MB</span>
                 <button onClick={() => setAudioFiles(p => p.filter((_, j) => j !== i))} className="text-white/30 hover:text-red-400"><X size={12} /></button>
@@ -205,7 +205,7 @@ export default function Training() {
               </div>
               <button onClick={simulateTrain} disabled={videoFiles.length === 0 && audioFiles.length === 0}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-black disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: "linear-gradient(135deg,var(--neon),var(--neon2))", boxShadow: "0 4px 20px rgba(0,245,255,0.3)" }}>
+                style={{ background: "linear-gradient(135deg,var(--gold),var(--gold2))", boxShadow: "0 4px 20px rgba(201,168,76,0.3)" }}>
                 <Brain size={16} /> Start Training
               </button>
             </div>

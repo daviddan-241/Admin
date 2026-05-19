@@ -14,7 +14,7 @@ function SecretField({ label, placeholder, hint }: { label: string; placeholder:
         <button onClick={() => setShow(s => !s)} className="p-2.5 rounded-xl glass border" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
           {show ? <EyeOff size={14} className="text-white/40" /> : <Eye size={14} className="text-white/40" />}
         </button>
-        <button className="p-2.5 rounded-xl text-black" style={{ background: "linear-gradient(135deg,var(--neon),var(--neon2))" }}>
+        <button className="p-2.5 rounded-xl text-black" style={{ background: "linear-gradient(135deg,var(--gold),var(--gold2))" }}>
           <Save size={14} />
         </button>
       </div>
@@ -27,7 +27,7 @@ function Section({ title, icon, desc, children }: { title: string; icon: React.R
     <GlassCard className="overflow-hidden">
       <div className="flex items-start gap-3 p-5 border-b" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
         <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "rgba(0,245,255,0.08)", border: "1px solid rgba(0,245,255,0.15)", color: "var(--neon)" }}>
+          style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.15)", color: "var(--gold)" }}>
           {icon}
         </div>
         <div>
@@ -128,7 +128,7 @@ export default function SettingsPage() {
                 <div className="text-xs text-white/30 mt-0.5">{s.desc}</div>
               </div>
               <div className={`w-11 h-6 rounded-full relative cursor-pointer transition-all ${s.enabled ? "" : ""}`}
-                style={{ background: s.enabled ? "var(--neon)" : "rgba(255,255,255,0.1)" }}>
+                style={{ background: s.enabled ? "var(--gold)" : "rgba(255,255,255,0.1)" }}>
                 <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all"
                   style={{ left: s.enabled ? "calc(100% - 22px)" : "2px" }} />
               </div>
@@ -137,13 +137,13 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <GlassCard className="p-5 flex items-center justify-between" style={{ border: "1px solid rgba(0,245,255,0.15)" } as React.CSSProperties}>
+      <GlassCard className="p-5 flex items-center justify-between" style={{ border: "1px solid rgba(201,168,76,0.15)" } as React.CSSProperties}>
         <div>
           <p className="font-semibold text-white">Save All Settings</p>
           <p className="text-xs text-white/30 mt-0.5">Changes apply on next model load</p>
         </div>
         <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-black"
-          style={{ background: "linear-gradient(135deg,var(--neon),var(--neon2))", boxShadow: "0 4px 20px rgba(0,245,255,0.3)" }}>
+          style={{ background: "linear-gradient(135deg,var(--gold),var(--gold2))", boxShadow: "0 4px 20px rgba(201,168,76,0.3)" }}>
           <Save size={14} /> Save Changes
         </button>
       </GlassCard>

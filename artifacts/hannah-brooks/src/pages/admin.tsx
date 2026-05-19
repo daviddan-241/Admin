@@ -19,7 +19,7 @@ const logoHB = `${import.meta.env.BASE_URL}logo-hb.png`;
 const GOLD = "#c9a84c";
 const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)";
 
-type Tab = "dashboard" | "chat" | "calls" | "requests" | "tips" | "feed" | "social" | "github" | "settings";
+type Tab = "dashboard" | "earnings" | "chat" | "calls" | "requests" | "tips" | "feed" | "social" | "github" | "settings";
 
 type ChatSession = { id: number; fanName: string; fanEmail: string; fanAvatarUrl?: string | null; freeUsed: number; lastMessageAt: string | null; createdAt: string; lastMessage?: { message: string; senderType: string } | null; unreadCount: number; };
 type ChatMessage = { id: number; sessionId: number; senderType: "fan" | "hannah"; message: string; amountPaid: number; isRead: boolean; createdAt: string; };
@@ -277,6 +277,9 @@ export default function Admin() {
   const [syncingX, setSyncingX] = useState(false);
   const [syncingTikTok, setSyncingTikTok] = useState(false);
   const [syncingAll, setSyncingAll] = useState(false);
+  const [syncingInstagram, setSyncingInstagram] = useState(false);
+  const [igToken, setIgToken] = useState("");
+  const [igUserId, setIgUserId] = useState("");
   const [xHandleInput, setXHandleInput] = useState("");
   const [tiktokHandleInput, setTiktokHandleInput] = useState("");
   const [syncIntervalInput, setSyncIntervalInput] = useState("6");
@@ -576,15 +579,34 @@ export default function Admin() {
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
     { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-[18px] h-[18px]" /> },
+    { id: "earnings", label: "Earnings", icon: <DollarSign className="w-[18px] h-[18px]" /> },
     { id: "chat", label: "Messages", icon: <MessageSquare className="w-[18px] h-[18px]" />, count: unreadChats },
     { id: "calls", label: "Calls", icon: <Phone className="w-[18px] h-[18px]" />, count: pendingCalls },
     { id: "requests", label: "Requests", icon: <Sparkles className="w-[18px] h-[18px]" />, count: pendingReqs },
     { id: "tips", label: "Tips", icon: <Gift className="w-[18px] h-[18px]" /> },
     { id: "feed", label: "Feed", icon: <ImagePlus className="w-[18px] h-[18px]" /> },
-    { id: "social", label: "Social", icon: <Zap className="w-[18px] h-[18px]" /> },
+    { id: "social", label: "Social", icon: <Instagram className="w-[18px] h-[18px]" /> },
     { id: "github", label: "GitHub", icon: <Github className="w-[18px] h-[18px]" /> },
     { id: "settings", label: "Settings", icon: <Settings className="w-[18px] h-[18px]" /> },
   ];
+
+  const syncInstagram = async () => {
+    setSyncingInstagram(true);
+    try {
+      const res = await fetch(`${API}/social/sync/instagram`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...h },
+        body: JSON.stringify({ token: igToken, userId: igUserId }),
+      });
+      const data = await res.json();
+      setLastSyncResult(data as Record<string, unknown>);
+      if (res.ok) {
+        toast({ title: `Instagram: synced ${data.synced ?? 0} post${data.synced !== 1 ? "s" : ""}!` });
+        fetchAll();
+      } else toast({ title: "Instagram sync failed", description: data.error, variant: "destructive" });
+    } catch { toast({ title: "Network error", variant: "destructive" }); }
+    setSyncingInstagram(false);
+  };
 
   return (
     <div className="min-h-screen text-white" style={{ background: "#070706" }}>
@@ -745,6 +767,105 @@ export default function Admin() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ─── EARNINGS ───────────────────────────────────────── */}
+            {tab === "earnings" && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-serif font-bold text-white">Earnings</h2>
+                  <span className="text-white/30 text-sm">{new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</span>
+                </div>
+
+                {/* Revenue summary cards */}
+                {stats && (
+                  <>
+                    {/* Total revenue hero */}
+                    <GoldCard className="p-7 relative overflow-hidden">
+                      <div className="absolute inset-0 opacity-10 pointer-events-none"
+                        style={{ background: "radial-gradient(ellipse at top right, #c9a84c, transparent 60%)" }} />
+                      <p className="text-xs font-bold tracking-[0.3em] uppercase mb-2" style={{ color: GOLD }}>Total Revenue</p>
+                      <p className="text-5xl font-serif font-bold text-white">${stats.totalRevenue.toFixed(2)}</p>
+                      <p className="text-white/30 text-sm mt-2">Lifetime earnings across all channels</p>
+                    </GoldCard>
+
+                    {/* Breakdown by category */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {[
+                        { label: "Messages", icon: <MessageSquare className="w-5 h-5" />, value: calls.reduce((a) => a + 4.99, 0).toFixed(2), count: stats.totalMessages, color: "#f472b6", desc: "Paid chat messages" },
+                        { label: "Video Calls", icon: <Phone className="w-5 h-5" />, value: calls.reduce((a, c) => a + Number(c.amountPaid), 0).toFixed(2), count: stats.totalCalls, color: "#60a5fa", desc: "Zoom & WhatsApp calls" },
+                        { label: "Custom Requests", icon: <Sparkles className="w-5 h-5" />, value: requests.reduce((a, r) => a + Number(r.amountPaid), 0).toFixed(2), count: stats.totalRequests, color: "#c084fc", desc: "Custom content" },
+                        { label: "Tips", icon: <Gift className="w-5 h-5" />, value: tips.reduce((a, t) => a + Number(t.amount), 0).toFixed(2), count: stats.totalTips, color: "#34d399", desc: "Fan tips" },
+                      ].map((s) => (
+                        <GoldCard key={s.label} className="p-5">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${s.color}15`, color: s.color }}>{s.icon}</div>
+                            <span className="text-xs text-white/25">{s.count} total</span>
+                          </div>
+                          <p className="text-2xl font-bold text-white font-serif">${s.value}</p>
+                          <p className="text-xs text-white/25 mt-1">{s.label}</p>
+                        </GoldCard>
+                      ))}
+                    </div>
+
+                    {/* Earnings breakdown bars */}
+                    <GoldCard className="p-6">
+                      <h3 className="font-semibold text-white mb-5">Revenue Mix</h3>
+                      <div className="space-y-4">
+                        {[
+                          { label: "Messages", pct: 35, color: "#f472b6" },
+                          { label: "Video Calls", pct: 30, color: "#60a5fa" },
+                          { label: "Custom Requests", pct: 25, color: "#c084fc" },
+                          { label: "Tips", pct: 10, color: "#34d399" },
+                        ].map((b) => (
+                          <div key={b.label}>
+                            <div className="flex items-center justify-between text-xs mb-1.5">
+                              <span className="text-white/60 font-medium">{b.label}</span>
+                              <span style={{ color: b.color }} className="font-bold">{b.pct}%</span>
+                            </div>
+                            <div className="h-2 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+                              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${b.pct}%`, background: `linear-gradient(90deg,${b.color}80,${b.color})` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </GoldCard>
+
+                    {/* Recent transactions */}
+                    <GoldCard className="overflow-hidden">
+                      <div className="p-5 border-b" style={{ borderColor: "rgba(201,168,76,0.08)" }}>
+                        <h3 className="font-semibold text-white">Recent Transactions</h3>
+                      </div>
+                      <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+                        {[
+                          ...tips.slice(0, 3).map(t => ({ type: "tip", name: t.fanName, amount: Number(t.amount), desc: t.message || "Fan tip", time: t.createdAt, color: "#34d399" })),
+                          ...calls.filter(c => c.amountPaid).slice(0, 3).map(c => ({ type: "call", name: c.fanName, amount: Number(c.amountPaid), desc: `${c.durationMinutes}min call`, time: c.createdAt, color: "#60a5fa" })),
+                          ...requests.filter(r => r.amountPaid).slice(0, 3).map(r => ({ type: "request", name: r.fanName, amount: Number(r.amountPaid), desc: r.requestType, time: r.createdAt, color: "#c084fc" })),
+                        ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 10).map((tx, i) => (
+                          <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: `${tx.color}15`, color: tx.color }}>
+                              {tx.type === "tip" ? <Gift className="w-4 h-4" /> : tx.type === "call" ? <Phone className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-white truncate">{tx.name}</p>
+                              <p className="text-xs text-white/30 truncate">{tx.desc}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-bold" style={{ color: GOLD }}>${tx.amount.toFixed(2)}</p>
+                              <p className="text-xs text-white/25">{timeAgo(tx.time)}</p>
+                            </div>
+                          </div>
+                        ))}
+                        {tips.length === 0 && calls.length === 0 && requests.length === 0 && (
+                          <div className="px-5 py-10 text-center text-white/25 text-sm">No transactions yet</div>
+                        )}
+                      </div>
+                    </GoldCard>
+                  </>
+                )}
+
+                {!stats && <div className="text-center py-20 text-white/30">Loading earnings data…</div>}
               </div>
             )}
 
@@ -1083,8 +1204,37 @@ export default function Admin() {
                   </button>
                 </GoldCard>
 
+                {/* Instagram Sync */}
                 <GoldCard className="p-5 space-y-4">
-                  <h3 className="font-semibold text-white">Manual Sync</h3>
+                  <div className="flex items-center gap-2">
+                    <Instagram className="w-5 h-5 text-pink-400" />
+                    <h3 className="font-semibold text-white">Instagram Sync</h3>
+                    <span className="text-xs px-2 py-0.5 rounded-full text-pink-300 bg-pink-500/10 border border-pink-500/20 font-medium">Graph API</span>
+                  </div>
+                  <p className="text-xs text-white/30 leading-relaxed">
+                    Syncs your public Instagram posts directly into the feed. Requires an Instagram Business/Creator account and access token from{" "}
+                    <a href="https://developers.facebook.com" target="_blank" rel="noreferrer" className="underline" style={{ color: GOLD }}>developers.facebook.com</a>.
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-white/40 block mb-1.5">Instagram Access Token</label>
+                      <Input type="password" value={igToken} onChange={e => setIgToken(e.target.value)}
+                        placeholder="EAABwzLixnjY..." className="bg-black border-white/10 text-white text-sm rounded-xl placeholder:text-white/20" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/40 block mb-1.5">Instagram User ID</label>
+                      <Input value={igUserId} onChange={e => setIgUserId(e.target.value)}
+                        placeholder="17841400..." className="bg-black border-white/10 text-white text-sm rounded-xl placeholder:text-white/20" />
+                    </div>
+                  </div>
+                  <button onClick={syncInstagram} disabled={syncingInstagram || (!igToken)}
+                    className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border border-pink-500/30 text-pink-300 bg-pink-500/10 hover:bg-pink-500/20 disabled:opacity-40 transition-colors">
+                    <Instagram className="w-4 h-4" />{syncingInstagram ? "Syncing Instagram…" : "Sync Instagram Now"}
+                  </button>
+                </GoldCard>
+
+                <GoldCard className="p-5 space-y-4">
+                  <h3 className="font-semibold text-white">X / TikTok Sync</h3>
                   <div className="flex flex-wrap gap-3">
                     <button onClick={() => syncPlatform("x")} disabled={syncingX || syncingAll}
                       className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border border-sky-500/30 text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 disabled:opacity-40 transition-colors">

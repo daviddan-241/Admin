@@ -177,6 +177,50 @@ router.post("/social/sync/all", adminAuth, async (_req, res): Promise<void> => {
   }
 });
 
+// ── Instagram sync (Graph API) ────────────────────────────────────────────
+async function syncInstagram(accessToken: string, userId: string): Promise<{ synced: number; errors: string[] }> {
+  const errors: string[] = [];
+  try {
+    const mediaRes = await fetch(
+      `https://graph.instagram.com/v18.0/${userId}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,permalink&limit=20&access_token=${accessToken}`
+    );
+    if (!mediaRes.ok) { errors.push(`Instagram media fetch failed: ${await mediaRes.text()}`); return { synced: 0, errors }; }
+    const mediaData = await mediaRes.json() as { data?: { id: string; caption?: string; media_type: string; media_url?: string; thumbnail_url?: string; timestamp: string; permalink: string }[] };
+    if (!mediaData.data?.length) return { synced: 0, errors };
+
+    let synced = 0;
+    for (const item of mediaData.data) {
+      if (item.media_type === "VIDEO" && !item.thumbnail_url) continue;
+      const imageUrl = item.media_url || item.thumbnail_url || "";
+      if (!imageUrl) continue;
+      const existing = await db.query.postsTable.findFirst({ where: (p, { eq }) => eq(p.imageUrl, imageUrl) });
+      if (existing) continue;
+      await db.insert(postsTable).values({
+        imageUrl,
+        caption: item.caption || null,
+        platform: "instagram",
+        isPrivate: false,
+        watermark: false,
+        isVip: false,
+        publishedAt: new Date(item.timestamp),
+      });
+      synced++;
+    }
+    return { synced, errors };
+  } catch (e: unknown) { errors.push(e instanceof Error ? e.message : String(e)); return { synced: 0, errors }; }
+}
+
+router.post("/social/sync/instagram", adminAuth, async (req, res): Promise<void> => {
+  const token = process.env.INSTAGRAM_ACCESS_TOKEN || (req.body as { token?: string }).token || "";
+  const userId = process.env.INSTAGRAM_USER_ID || (req.body as { userId?: string }).userId || "";
+  if (!token) { res.status(400).json({ error: "INSTAGRAM_ACCESS_TOKEN not set. Add it in Settings → API Keys." }); return; }
+  if (!userId) { res.status(400).json({ error: "INSTAGRAM_USER_ID not set. Find it at graph.instagram.com/me?access_token=YOUR_TOKEN" }); return; }
+  try {
+    const result = await syncInstagram(token, userId);
+    res.json(result);
+  } catch (e: unknown) { res.status(500).json({ error: `Instagram sync failed: ${e instanceof Error ? e.message : String(e)}` }); }
+});
+
 // ── GitHub push ───────────────────────────────────────────────────────────
 router.post("/social/github/push", adminAuth, async (_req, res): Promise<void> => {
   const { exec } = await import("child_process");

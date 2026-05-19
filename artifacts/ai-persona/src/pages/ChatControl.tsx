@@ -21,8 +21,8 @@ const DEMO_QUEUE: QueueMsg[] = [
 ];
 
 const PLATFORM_COLOR: Record<string, string> = {
-  "Platform Chat": "var(--neon)",
-  "Instagram": "var(--neon2)",
+  "Platform Chat": "var(--gold)",
+  "Instagram": "var(--gold2)",
   "Twitter": "#1DA1F2",
   "TikTok": "#ff006e",
 };
@@ -58,7 +58,7 @@ export default function ChatControl() {
               ? <ToggleRight size={28} style={{ color: "#ff006e" }} />
               : <ToggleLeft size={28} className="text-white/30" />}
           </button>
-          <span className="text-sm font-bold" style={{ color: mode === "autonomous" ? "#ff006e" : "rgba(255,255,255,0.4)" }}>
+          <span className="text-sm font-bold" style={{ color: mode === "autonomous" ? "#ff006e" : "rgba(232,223,200,0.4)" }}>
             {mode === "autonomous" ? "AUTONOMOUS" : "REVIEW"}
           </span>
         </div>
@@ -70,7 +70,7 @@ export default function ChatControl() {
           { label: "Pending Review", value: pending.length, color: "#ffaa00" },
           { label: "Approved", value: approved.length, color: "#00ff88" },
           { label: "Rejected", value: rejected.length, color: "#ff006e" },
-          { label: "Sent Today", value: 142, color: "var(--neon)" },
+          { label: "Sent Today", value: 142, color: "var(--gold)" },
         ].map((s) => (
           <GlassCard key={s.label} className="p-4 text-center">
             <div className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</div>
@@ -138,9 +138,9 @@ export default function ChatControl() {
               </div>
 
               {/* AI reply */}
-              <div className="rounded-xl p-3 mb-4" style={{ background: "rgba(0,245,255,0.05)", border: "1px solid rgba(0,245,255,0.15)" }}>
+              <div className="rounded-xl p-3 mb-4" style={{ background: "rgba(201,168,76,0.05)", border: "1px solid rgba(201,168,76,0.15)" }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] mono font-bold" style={{ color: "var(--neon)" }}>AI GENERATED REPLY</span>
+                  <span className="text-[10px] mono font-bold" style={{ color: "var(--gold)" }}>AI GENERATED REPLY</span>
                   <button onClick={() => { setEditId(msg.id); setEditBuf(msg.aiReply); }} className="text-white/30 hover:text-white transition-colors">
                     <Edit3 size={12} />
                   </button>
@@ -149,12 +149,12 @@ export default function ChatControl() {
                   <div className="space-y-2">
                     <textarea value={editBuf} onChange={(e) => setEditBuf(e.target.value)} rows={3} className="text-sm" style={{ resize: "vertical" }} />
                     <div className="flex gap-2">
-                      <button onClick={() => saveEdit(msg.id)} className="text-xs px-3 py-1 rounded-lg font-bold text-black" style={{ background: "var(--neon)" }}>Save</button>
+                      <button onClick={() => saveEdit(msg.id)} className="text-xs px-3 py-1 rounded-lg font-bold text-black" style={{ background: "var(--gold)" }}>Save</button>
                       <button onClick={() => setEditId(null)} className="text-xs px-3 py-1 rounded-lg text-white/40 border border-white/10">Cancel</button>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-white/80 leading-relaxed">{msg.aiReply}</p>
+                  <p className="text-sm text-[#e8dfc8]/80 leading-relaxed">{msg.aiReply}</p>
                 )}
               </div>
 
