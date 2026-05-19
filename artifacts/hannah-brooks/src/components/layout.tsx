@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Instagram, Twitter, Music2, Sun, Moon, Crown } from "lucide-react";
+import { Menu, X, Instagram, Twitter, Music2, Sun, Moon, Crown, Lock } from "lucide-react";
 import { ThemeContext } from "@/App";
 
 const logoHB = `${import.meta.env.BASE_URL}logo-hb.png`;
@@ -151,9 +151,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-xs text-white/20">© {new Date().getFullYear()} Hannah Brooks · All rights reserved</p>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <p className="text-xs text-white/20">Platform Online</p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <p className="text-xs text-white/20">Platform Online</p>
+              </div>
+              <Link href="/admin" className="flex items-center gap-1.5 text-xs text-white/15 hover:text-white/40 transition-colors">
+                <Lock className="w-3 h-3" /> Creator Access
+              </Link>
             </div>
           </div>
         </div>
