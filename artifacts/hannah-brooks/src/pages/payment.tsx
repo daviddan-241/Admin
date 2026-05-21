@@ -52,7 +52,7 @@ function SophieBubble({ text, delay = 0 }: { text: string; delay?: number }) {
 
 export default function Payment() {
   const { toast } = useToast();
-  const { config } = usePlatformConfig();
+  usePlatformConfig();
   const search = useSearch();
   const purpose = new URLSearchParams(search).get("for") || "subscription";
 

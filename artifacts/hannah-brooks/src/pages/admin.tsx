@@ -21,7 +21,8 @@ const logoHB = `${import.meta.env.BASE_URL}logo-hb.png`;
 const GOLD = "#c9a84c";
 const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)";
 
-type Tab = "dashboard" | "earnings" | "chat" | "calls" | "requests" | "tips" | "feed" | "social" | "github" | "settings" | "ai-chat" | "personas" | "training" | "analytics" | "ai-generate";
+type Tab = "dashboard" | "earnings" | "chat" | "calls" | "requests" | "tips" | "feed" | "social" | "github" | "settings" | "ai-chat" | "personas" | "training" | "analytics" | "ai-generate" | "gift-cards";
+type GiftCard = { id: number; fanName: string; fanEmail: string; cardType: string; cardAmount: string; purpose: string; frontImageUrl: string; backImageUrl: string; note: string | null; status: string; adminNote: string | null; createdAt: string; verifiedAt: string | null; };
 
 type ChatSession = { id: number; fanName: string; fanEmail: string; fanAvatarUrl?: string | null; freeUsed: number; lastMessageAt: string | null; createdAt: string; lastMessage?: { message: string; senderType: string } | null; unreadCount: number; };
 type ChatMessage = { id: number; sessionId: number; senderType: "fan" | "hannah"; message: string; amountPaid: number; isRead: boolean; createdAt: string; };
@@ -307,6 +308,11 @@ export default function Admin() {
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [newPost, setNewPost] = useState({ imageUrl: "", caption: "", platform: "instagram", isPrivate: false });
   const [addingPost, setAddingPost] = useState(false);
+  const [postImageFile, setPostImageFile] = useState<string | null>(null);
+  const postImageRef = useRef<HTMLInputElement>(null);
+  const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
+  const [giftCardFilter, setGiftCardFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
+  const [giftCardAdminNote, setGiftCardAdminNote] = useState<Record<number, string>>({});
   const [socialConfig, setSocialConfig] = useState<SocialConfig | null>(null);
   const [syncingX, setSyncingX] = useState(false);
   const [syncingTikTok, setSyncingTikTok] = useState(false);
@@ -352,13 +358,14 @@ export default function Admin() {
 
   // ── Data fetching ──────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
-    const [sessRes, callRes, reqRes, tipRes, postRes, statRes] = await Promise.all([
+    const [sessRes, callRes, reqRes, tipRes, postRes, statRes, gcRes] = await Promise.all([
       fetch(`${API}/chat/admin/sessions`, { headers: h }),
       fetch(`${API}/calls`, { headers: h }),
       fetch(`${API}/requests`, { headers: h }),
       fetch(`${API}/tips`, { headers: h }),
       fetch(`${API}/posts`, { headers: h }),
       fetch(`${API}/stats`, { headers: h }),
+      fetch(`${API}/gift-cards`, { headers: h }),
     ]);
     if (sessRes.ok) { const data = await sessRes.json(); setChatSessions(data); }
     if (callRes.ok) setCalls(await callRes.json());
@@ -366,6 +373,7 @@ export default function Admin() {
     if (tipRes.ok) setTips(await tipRes.json());
     if (postRes.ok) setPosts(await postRes.json());
     if (statRes.ok) setStats(await statRes.json());
+    if (gcRes.ok) setGiftCards(await gcRes.json());
   }, [adminKey]);
 
   const fetchSocialConfig = useCallback(async () => {
@@ -521,13 +529,32 @@ export default function Admin() {
   };
 
   const addPost = async () => {
-    if (!newPost.imageUrl) return;
+    if (!newPost.imageUrl && !postImageFile) return;
     setAddingPost(true);
-    await fetch(`${API}/posts`, { method: "POST", headers: { "Content-Type": "application/json", ...h }, body: JSON.stringify({ ...newPost, watermark: false }) });
-    setNewPost({ imageUrl: "", caption: "", platform: "instagram", isPrivate: false });
+    try {
+      let imageUrl = newPost.imageUrl;
+      if (postImageFile) {
+        const upRes = await fetch(`${API}/upload`, {
+          method: "POST", headers: { "Content-Type": "application/json", ...h },
+          body: JSON.stringify({ image: postImageFile, filename: `post_${Date.now()}` }),
+        });
+        if (upRes.ok) { const d = await upRes.json(); imageUrl = d.url; }
+      }
+      await fetch(`${API}/posts`, { method: "POST", headers: { "Content-Type": "application/json", ...h }, body: JSON.stringify({ ...newPost, imageUrl, watermark: false }) });
+      setNewPost({ imageUrl: "", caption: "", platform: "instagram", isPrivate: false });
+      setPostImageFile(null);
+      toast({ title: "Published to feed!" });
+      fetchAll();
+    } catch { toast({ title: "Failed to publish", variant: "destructive" }); }
     setAddingPost(false);
-    toast({ title: "Published to feed!" });
-    fetchAll();
+  };
+
+  const updateGiftCard = async (id: number, status: string, adminNote?: string) => {
+    const res = await fetch(`${API}/gift-cards/${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json", ...h },
+      body: JSON.stringify({ status, adminNote: adminNote || giftCardAdminNote[id] || null }),
+    });
+    if (res.ok) { toast({ title: status === "approved" ? "Gift card approved! Access unlocked." : "Gift card rejected." }); fetchAll(); }
   };
 
   const saveSocialConfig = async () => {
@@ -693,6 +720,7 @@ export default function Admin() {
     { id: "calls", label: "Calls", icon: <Phone className="w-[18px] h-[18px]" />, count: pendingCalls },
     { id: "requests", label: "Requests", icon: <Sparkles className="w-[18px] h-[18px]" />, count: pendingReqs },
     { id: "tips", label: "Tips", icon: <Gift className="w-[18px] h-[18px]" /> },
+    { id: "gift-cards", label: "Gift Cards", icon: <CreditCard className="w-[18px] h-[18px]" />, count: giftCards.filter(g => g.status === "pending").length },
     { id: "feed", label: "Feed", icon: <ImagePlus className="w-[18px] h-[18px]" /> },
     { id: "social", label: "Social", icon: <Instagram className="w-[18px] h-[18px]" /> },
     { id: "github", label: "GitHub", icon: <Github className="w-[18px] h-[18px]" /> },
@@ -1377,9 +1405,35 @@ export default function Admin() {
                     <ImagePlus className="w-5 h-5" style={{ color: GOLD }} /> Publish New Post
                   </h3>
                   <div className="space-y-4">
-                    <Input placeholder="Paste image/video URL" value={newPost.imageUrl}
-                      onChange={(e) => setNewPost((p) => ({ ...p, imageUrl: e.target.value }))}
-                      className="bg-black/50 border-white/10 text-white rounded-xl placeholder:text-white/20" />
+                    {/* Image upload OR URL */}
+                    <input ref={postImageRef} type="file" accept="image/*,video/*" className="hidden" onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      const reader = new FileReader();
+                      reader.onload = ev => { setPostImageFile(ev.target?.result as string); setNewPost(p => ({ ...p, imageUrl: "" })); };
+                      reader.readAsDataURL(f);
+                    }} />
+                    <div className="flex gap-3">
+                      <div onClick={() => postImageRef.current?.click()}
+                        className="relative w-28 h-28 rounded-xl border-2 border-dashed border-white/20 hover:border-amber-400/40 cursor-pointer transition-all flex items-center justify-center overflow-hidden bg-black/30 shrink-0">
+                        {postImageFile ? (
+                          <img src={postImageFile} alt="preview" className="absolute inset-0 w-full h-full object-cover" />
+                        ) : newPost.imageUrl ? (
+                          <img src={newPost.imageUrl} alt="preview" className="absolute inset-0 w-full h-full object-cover" onError={e => ((e.target as HTMLImageElement).style.display = "none")} />
+                        ) : (
+                          <div className="text-center">
+                            <Camera className="w-5 h-5 text-white/30 mx-auto mb-1" />
+                            <p className="text-white/30 text-[10px]">Upload photo</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 flex flex-col gap-2">
+                        <Input placeholder="Or paste image/video URL" value={newPost.imageUrl}
+                          onChange={(e) => { setNewPost((p) => ({ ...p, imageUrl: e.target.value })); if (e.target.value) setPostImageFile(null); }}
+                          className="bg-black/50 border-white/10 text-white rounded-xl placeholder:text-white/20" />
+                        <p className="text-white/25 text-xs">Upload a file from your device, or paste a URL</p>
+                      </div>
+                    </div>
                     <Textarea placeholder="Caption (optional)" value={newPost.caption}
                       onChange={(e) => setNewPost((p) => ({ ...p, caption: e.target.value }))}
                       className="bg-black/50 border-white/10 text-white rounded-xl resize-none placeholder:text-white/20" />
@@ -1397,13 +1451,7 @@ export default function Admin() {
                         <Lock className="w-3.5 h-3.5" /> VIP only
                       </label>
                     </div>
-                    {newPost.imageUrl && (
-                      <div className="w-28 h-28 rounded-xl overflow-hidden border border-white/10">
-                        <img src={newPost.imageUrl} alt="preview" className="w-full h-full object-cover"
-                          onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
-                      </div>
-                    )}
-                    <button onClick={addPost} disabled={addingPost || !newPost.imageUrl}
+                    <button onClick={addPost} disabled={addingPost || (!newPost.imageUrl && !postImageFile)}
                       className="h-11 px-6 rounded-xl font-bold text-sm text-black disabled:opacity-40 transition-all"
                       style={{ background: GOLD_GRAD }}>
                       {addingPost ? "Publishing…" : "Publish to Feed"}
@@ -1632,6 +1680,83 @@ export default function Admin() {
                     <Github className="w-4 h-4" /> Push to Both Repos
                   </button>
                 </GoldCard>
+              </div>
+            )}
+
+            {/* ─── GIFT CARDS ──────────────────────────────────────── */}
+            {tab === "gift-cards" && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-serif font-bold text-white flex items-center gap-2"><CreditCard className="w-6 h-6" style={{ color: GOLD }} /> Gift Card Payments</h2>
+                    <p className="text-white/30 text-sm mt-1">Fans who paid by gift card — verify each card and unlock their access.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {(["all", "pending", "approved", "rejected"] as const).map(f => (
+                      <button key={f} onClick={() => setGiftCardFilter(f)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-all ${giftCardFilter === f ? "text-black" : "text-white/40 border border-white/10"}`}
+                        style={giftCardFilter === f ? { background: GOLD_GRAD } : {}}>
+                        {f} {f === "pending" && giftCards.filter(g => g.status === "pending").length > 0 && `(${giftCards.filter(g => g.status === "pending").length})`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {giftCards.filter(g => giftCardFilter === "all" || g.status === giftCardFilter).map(gc => (
+                    <GoldCard key={gc.id} className="p-5">
+                      <div className="flex flex-col md:flex-row gap-5">
+                        {/* Card photos */}
+                        <div className="flex gap-3 shrink-0">
+                          <div className="w-32 h-20 rounded-xl overflow-hidden border border-white/10 bg-black/30">
+                            <img src={`http://localhost:8080${gc.frontImageUrl}`} alt="Front" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity="0.3"; }} />
+                          </div>
+                          <div className="w-32 h-20 rounded-xl overflow-hidden border border-white/10 bg-black/30">
+                            <img src={`http://localhost:8080${gc.backImageUrl}`} alt="Back" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity="0.3"; }} />
+                          </div>
+                        </div>
+                        {/* Info */}
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div>
+                              <div className="font-bold text-white">{gc.fanName}</div>
+                              <div className="text-xs text-white/40">{gc.fanEmail}</div>
+                            </div>
+                            <span className={statusBadge(gc.status)}>{gc.status}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-3 text-sm mb-2">
+                            <span className="text-white/60"><span className="text-white/30">Card:</span> {gc.cardType}</span>
+                            <span className="text-white/60"><span className="text-white/30">Amount:</span> <span className="text-amber-400 font-bold">${gc.cardAmount}</span></span>
+                            <span className="text-white/60"><span className="text-white/30">For:</span> {gc.purpose}</span>
+                          </div>
+                          {gc.note && <p className="text-xs text-white/40 italic mb-2">"{gc.note}"</p>}
+                          <p className="text-xs text-white/20">{new Date(gc.createdAt).toLocaleString()}</p>
+                          {gc.status === "pending" && (
+                            <div className="mt-3 flex flex-wrap gap-2 items-center">
+                              <input value={giftCardAdminNote[gc.id] || ""} onChange={e => setGiftCardAdminNote(n => ({ ...n, [gc.id]: e.target.value }))}
+                                placeholder="Add a note (optional)" className="flex-1 h-8 px-3 rounded-lg text-xs bg-black/40 border border-white/10 text-white placeholder:text-white/20 min-w-[160px]" />
+                              <button onClick={() => updateGiftCard(gc.id, "approved")}
+                                className="h-8 px-4 rounded-lg font-bold text-xs text-black" style={{ background: GOLD_GRAD }}>
+                                <CheckCircle size={12} className="inline mr-1" /> Approve & Unlock
+                              </button>
+                              <button onClick={() => updateGiftCard(gc.id, "rejected")}
+                                className="h-8 px-4 rounded-lg font-bold text-xs text-red-300 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition-colors">
+                                <X size={12} className="inline mr-1" /> Reject
+                              </button>
+                            </div>
+                          )}
+                          {gc.adminNote && <p className="mt-2 text-xs text-amber-400/70 italic">Admin: {gc.adminNote}</p>}
+                        </div>
+                      </div>
+                    </GoldCard>
+                  ))}
+                  {giftCards.filter(g => giftCardFilter === "all" || g.status === giftCardFilter).length === 0 && (
+                    <div className="text-center py-20 text-white/20 border border-white/5 rounded-2xl">
+                      <CreditCard className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                      <p>No {giftCardFilter === "all" ? "" : giftCardFilter} gift cards yet</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
