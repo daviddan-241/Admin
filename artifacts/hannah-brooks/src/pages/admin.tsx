@@ -21,7 +21,7 @@ const logoHB = `${import.meta.env.BASE_URL}logo-hb.png`;
 const GOLD = "#c9a84c";
 const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)";
 
-type Tab = "dashboard" | "earnings" | "chat" | "calls" | "requests" | "tips" | "feed" | "social" | "github" | "settings" | "ai-chat" | "personas" | "training" | "analytics" | "ai-generate" | "gift-cards";
+type Tab = "dashboard" | "earnings" | "chat" | "calls" | "requests" | "tips" | "feed" | "social" | "github" | "settings" | "ai-chat" | "personas" | "training" | "analytics" | "ai-generate" | "gift-cards" | "vip-members";
 type GiftCard = { id: number; fanName: string; fanEmail: string; cardType: string; cardAmount: string; purpose: string; frontImageUrl: string; backImageUrl: string; note: string | null; status: string; adminNote: string | null; createdAt: string; verifiedAt: string | null; };
 
 type ChatSession = { id: number; fanName: string; fanEmail: string; fanAvatarUrl?: string | null; freeUsed: number; lastMessageAt: string | null; createdAt: string; lastMessage?: { message: string; senderType: string } | null; unreadCount: number; };
@@ -754,6 +754,7 @@ export default function Admin() {
     { id: "requests", label: "Requests", icon: <Sparkles className="w-[18px] h-[18px]" />, count: pendingReqs },
     { id: "tips", label: "Tips", icon: <Gift className="w-[18px] h-[18px]" /> },
     { id: "gift-cards", label: "Gift Cards", icon: <CreditCard className="w-[18px] h-[18px]" />, count: giftCards.filter(g => g.status === "pending").length },
+    { id: "vip-members", label: "VIP Members", icon: <Crown className="w-[18px] h-[18px]" /> },
     { id: "feed", label: "Feed", icon: <ImagePlus className="w-[18px] h-[18px]" /> },
     { id: "social", label: "Social", icon: <Instagram className="w-[18px] h-[18px]" /> },
     { id: "github", label: "GitHub", icon: <Github className="w-[18px] h-[18px]" /> },
@@ -1848,6 +1849,11 @@ export default function Admin() {
               </div>
             )}
 
+            {/* ─── VIP MEMBERS ─────────────────────────────────────── */}
+            {tab === "vip-members" && (
+              <VipMembersTab API={API} adminKey={adminKey} GOLD={GOLD} GOLD_GRAD={GOLD_GRAD} />
+            )}
+
             {/* ─── SETTINGS ───────────────────────────────────────── */}
             {tab === "settings" && (
               <div className="space-y-6 max-w-3xl">
@@ -1949,6 +1955,31 @@ export default function Admin() {
                           <Input defaultValue={String(platformSettings[key] || "")} onBlur={e => saveSettings({ [key]: e.target.value })} className={IC} />
                         </SF>
                       ))}
+                    </SettingsSection>
+
+                    <SettingsSection title="Email Notifications" icon={<Bell className="w-5 h-5" style={{ color: GOLD }} />}
+                      desc="Receive email alerts when fans pay, book calls, send tips, or submit gift cards. Uses any SMTP provider (Gmail, SendGrid, etc.).">
+                      <SF label="Your Email (Admin Notifications)" hint="Where Sophie gets notified of new payments, bookings, etc.">
+                        <Input defaultValue={String(platformSettings.adminEmail || "")} onBlur={e => saveSettings({ adminEmail: e.target.value })} placeholder="you@gmail.com" className={IC} />
+                      </SF>
+                      <SF label="SMTP Host" hint="e.g. smtp.gmail.com / smtp.sendgrid.net">
+                        <Input defaultValue={String(platformSettings.smtpHost || "")} onBlur={e => saveSettings({ smtpHost: e.target.value })} placeholder="smtp.gmail.com" className={IC} />
+                      </SF>
+                      <SF label="SMTP Port" hint="587 = TLS (recommended) · 465 = SSL · 25 = plain">
+                        <Input type="number" defaultValue={String(platformSettings.smtpPort || "587")} onBlur={e => saveSettings({ smtpPort: parseInt(e.target.value) || 587 })} placeholder="587" className={IC} />
+                      </SF>
+                      <SF label="SMTP Username" hint="Usually your email address">
+                        <Input defaultValue={String(platformSettings.smtpUser || "")} onBlur={e => saveSettings({ smtpUser: e.target.value })} placeholder="you@gmail.com" className={IC} />
+                      </SF>
+                      <SF label="SMTP Password / App Password" hint="For Gmail: use a 16-char App Password (not your login password)">
+                        <SecretInput defaultValue={rawSecrets.smtpPass || ""} onSave={v => saveSettings({ smtpPass: v })} placeholder="xxxx xxxx xxxx xxxx" />
+                      </SF>
+                      <SF label="From Name / Address" hint='How it appears to fans — e.g. "Sophie Rain" or noreply@sophierain.com'>
+                        <Input defaultValue={String(platformSettings.smtpFrom || "")} onBlur={e => saveSettings({ smtpFrom: e.target.value })} placeholder={`"Sophie Rain" <noreply@sophierain.com>`} className={IC} />
+                      </SF>
+                      <div className="rounded-xl border border-amber-400/15 bg-amber-400/5 p-3 text-xs text-white/40 leading-relaxed">
+                        <strong className="text-amber-400/80">Gmail tip:</strong> Enable 2FA → Google Account → Security → App Passwords → Mail. Paste the 16-char code above.
+                      </div>
                     </SettingsSection>
 
                     <SettingsSection title="Security" icon={<Lock className="w-5 h-5" style={{ color: GOLD }} />}
@@ -3021,6 +3052,133 @@ export default function Admin() {
         * { -webkit-tap-highlight-color: transparent; }
         textarea { field-sizing: content; }
       `}</style>
+    </div>
+  );
+}
+
+// ── VIP Members Tab ───────────────────────────────────────────────────────
+type VipMember = { id: number; email: string; fanName: string | null; tier: string; grantedBy: string; isActive: boolean; grantedAt: string; expiresAt: string | null; notes: string | null; };
+
+function VipMembersTab({ API, adminKey, GOLD, GOLD_GRAD }: { API: string; adminKey: string; GOLD: string; GOLD_GRAD: string }) {
+  const [members, setMembers] = React.useState<VipMember[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [grantEmail, setGrantEmail] = React.useState("");
+  const [grantName, setGrantName] = React.useState("");
+  const [grantTier, setGrantTier] = React.useState("monthly");
+  const [granting, setGranting] = React.useState(false);
+  const { toast } = useToast();
+  const h = { "Content-Type": "application/json", "x-admin-key": adminKey };
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/vip`, { headers: h });
+      setMembers(await r.json());
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [API, adminKey]);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  async function handleGrant() {
+    if (!grantEmail.trim()) return;
+    setGranting(true);
+    try {
+      const r = await fetch(`${API}/vip/grant`, {
+        method: "POST", headers: h,
+        body: JSON.stringify({ email: grantEmail.trim(), fanName: grantName.trim() || undefined, tier: grantTier, grantedBy: "admin" }),
+      });
+      if (r.ok) {
+        toast({ title: "VIP granted!", description: `${grantEmail} now has ${grantTier} access.` });
+        setGrantEmail(""); setGrantName("");
+        load();
+      } else {
+        const e = await r.json(); toast({ title: "Failed", description: e.error, variant: "destructive" });
+      }
+    } catch { toast({ title: "Error", variant: "destructive" }); }
+    setGranting(false);
+  }
+
+  async function handleRevoke(id: number) {
+    await fetch(`${API}/vip/${id}`, { method: "PATCH", headers: h, body: JSON.stringify({ isActive: false }) });
+    load();
+  }
+
+  const tierColor = (t: string) => t === "lifetime" ? "#f0d080" : t === "quarterly" ? "#c9a84c" : "#a07830";
+  const tierLabel = (t: string) => t === "lifetime" ? "Lifetime" : t === "quarterly" ? "3-Month" : "Monthly";
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-serif font-bold text-white flex items-center gap-2">
+          <Crown className="w-6 h-6" style={{ color: GOLD }} /> VIP Members
+        </h2>
+        <p className="text-white/30 text-sm mt-1">Grant or revoke VIP access. Approved gift cards and successful payments auto-add fans here.</p>
+      </div>
+
+      {/* Manual grant */}
+      <div className="rounded-2xl p-5 space-y-4" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(201,168,76,0.15)" }}>
+        <p className="text-sm font-bold text-white/70">Grant VIP Manually</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input value={grantEmail} onChange={e => setGrantEmail(e.target.value)} placeholder="fan@email.com"
+            className="h-10 rounded-xl px-3 text-sm bg-black border border-white/10 text-white placeholder:text-white/20 focus:outline-none col-span-1" />
+          <input value={grantName} onChange={e => setGrantName(e.target.value)} placeholder="Fan name (optional)"
+            className="h-10 rounded-xl px-3 text-sm bg-black border border-white/10 text-white placeholder:text-white/20 focus:outline-none" />
+          <select value={grantTier} onChange={e => setGrantTier(e.target.value)}
+            className="h-10 rounded-xl px-3 text-sm bg-black border border-white/10 text-white focus:outline-none">
+            <option value="monthly">Monthly (1 month)</option>
+            <option value="quarterly">Quarterly (3 months)</option>
+            <option value="lifetime">Lifetime</option>
+          </select>
+        </div>
+        <button onClick={handleGrant} disabled={granting || !grantEmail.trim()}
+          className="h-10 px-6 rounded-xl text-sm font-bold text-black disabled:opacity-40"
+          style={{ background: GOLD_GRAD }}>
+          {granting ? "Granting..." : "Grant VIP Access"}
+        </button>
+      </div>
+
+      {/* Member list */}
+      {loading ? (
+        <div className="text-center py-16 text-white/20">Loading...</div>
+      ) : members.length === 0 ? (
+        <div className="text-center py-20 border border-white/5 rounded-2xl text-white/20">
+          <Crown className="w-8 h-8 mx-auto mb-3 opacity-30" />
+          <p>No VIP members yet — approve a gift card or grant manually above.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {members.map(m => (
+            <div key={m.id} className="rounded-2xl p-4 flex items-center justify-between gap-4" style={{ background: "rgba(255,255,255,0.025)", border: `1px solid ${m.isActive ? "rgba(201,168,76,0.2)" : "rgba(255,255,255,0.05)"}` }}>
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: m.isActive ? "rgba(201,168,76,0.15)" : "rgba(255,255,255,0.05)" }}>
+                  <Crown className="w-4 h-4" style={{ color: m.isActive ? GOLD : "rgba(255,255,255,0.2)" }} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-white text-sm">{m.fanName || m.email}</span>
+                    {m.fanName && <span className="text-white/30 text-xs">{m.email}</span>}
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold text-black" style={{ background: m.isActive ? tierColor(m.tier) : "#333" }}>{tierLabel(m.tier)}</span>
+                    {!m.isActive && <span className="text-xs text-red-400 font-bold">REVOKED</span>}
+                  </div>
+                  <div className="flex items-center gap-3 mt-0.5 text-xs text-white/30">
+                    <span>Granted: {new Date(m.grantedAt).toLocaleDateString()}</span>
+                    {m.expiresAt && <span>Expires: {new Date(m.expiresAt).toLocaleDateString()}</span>}
+                    {!m.expiresAt && m.tier === "lifetime" && <span className="text-amber-400">∞ Lifetime</span>}
+                    <span>via {m.grantedBy.replace("_", " ")}</span>
+                  </div>
+                </div>
+              </div>
+              {m.isActive && (
+                <button onClick={() => handleRevoke(m.id)}
+                  className="shrink-0 h-8 px-3 rounded-lg text-xs font-bold text-red-300 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition-colors">
+                  Revoke
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

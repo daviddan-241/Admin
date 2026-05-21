@@ -3,6 +3,8 @@ import { desc } from "drizzle-orm";
 import { db, requestsTable } from "@workspace/db";
 import { CreateRequestBody } from "@workspace/api-zod";
 import { activityEmitter } from "../emitter";
+import { sendMail, emailFanRequestConfirmed, emailAdminNewRequest } from "../lib/mailer";
+import { platformConfig } from "./settings";
 
 const router: IRouter = Router();
 
@@ -38,6 +40,26 @@ router.post("/requests", async (req, res): Promise<void> => {
     detail: `Custom request from ${parsed.data.fanName}: ${parsed.data.requestType}`,
     timestamp: new Date().toISOString(),
   });
+
+  // Email fan confirmation
+  const fanTpl = emailFanRequestConfirmed({
+    name: parsed.data.fanName,
+    requestType: parsed.data.requestType,
+    amount: String(parsed.data.amountPaid),
+  });
+  sendMail({ to: parsed.data.fanEmail, subject: fanTpl.subject, html: fanTpl.html }).catch(() => {});
+
+  // Email admin notification
+  const adminEmail = (platformConfig as any).adminEmail;
+  if (adminEmail) {
+    const adminTpl = emailAdminNewRequest({
+      fanName: parsed.data.fanName,
+      fanEmail: parsed.data.fanEmail,
+      requestType: parsed.data.requestType,
+      amount: String(parsed.data.amountPaid),
+    });
+    sendMail({ to: adminEmail, subject: adminTpl.subject, html: adminTpl.html }).catch(() => {});
+  }
 
   res.status(201).json({ ...row, amountPaid: Number(row.amountPaid), createdAt: row.createdAt.toISOString() });
 });

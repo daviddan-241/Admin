@@ -3,6 +3,8 @@ import { desc } from "drizzle-orm";
 import { db, tipsTable } from "@workspace/db";
 import { CreateTipBody } from "@workspace/api-zod";
 import { activityEmitter } from "../emitter";
+import { sendMail, emailFanTipReceived, emailAdminNewTip } from "../lib/mailer";
+import { platformConfig } from "./settings";
 
 const router: IRouter = Router();
 
@@ -36,6 +38,26 @@ router.post("/tips", async (req, res): Promise<void> => {
     detail: `Tip of $${parsed.data.amount} from ${parsed.data.fanName}`,
     timestamp: new Date().toISOString(),
   });
+
+  // Email fan thank-you
+  const fanTpl = emailFanTipReceived({
+    name: parsed.data.fanName,
+    amount: String(parsed.data.amount),
+    message: parsed.data.message ?? undefined,
+  });
+  sendMail({ to: parsed.data.fanEmail, subject: fanTpl.subject, html: fanTpl.html }).catch(() => {});
+
+  // Email admin notification
+  const adminEmail = (platformConfig as any).adminEmail;
+  if (adminEmail) {
+    const adminTpl = emailAdminNewTip({
+      fanName: parsed.data.fanName,
+      fanEmail: parsed.data.fanEmail,
+      amount: String(parsed.data.amount),
+      message: parsed.data.message ?? undefined,
+    });
+    sendMail({ to: adminEmail, subject: adminTpl.subject, html: adminTpl.html }).catch(() => {});
+  }
 
   res.status(201).json({ ...row, amount: Number(row.amount), createdAt: row.createdAt.toISOString() });
 });

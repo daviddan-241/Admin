@@ -6,3 +6,4 @@ export * from "./posts";
 export * from "./chat";
 export * from "./gift_cards";
 export * from "./settings";
+export * from "./vip_members";

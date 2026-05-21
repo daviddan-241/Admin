@@ -1,12 +1,10 @@
 import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import { db, callsTable } from "@workspace/db";
-import {
-  CreateCallBody,
-  UpdateCallParams,
-  UpdateCallBody,
-} from "@workspace/api-zod";
+import { CreateCallBody, UpdateCallParams, UpdateCallBody } from "@workspace/api-zod";
 import { activityEmitter } from "../emitter";
+import { sendMail, emailFanCallBooked, emailAdminNewCall } from "../lib/mailer";
+import { platformConfig } from "./settings";
 
 const router: IRouter = Router();
 
@@ -44,6 +42,28 @@ router.post("/calls", async (req, res): Promise<void> => {
     timestamp: new Date().toISOString(),
   });
 
+  // Email fan confirmation
+  const sessionLabel = `${parsed.data.durationMinutes}-min call`;
+  const fanTpl = emailFanCallBooked({
+    name: parsed.data.fanName,
+    session: sessionLabel,
+    date: parsed.data.preferredDate,
+    amount: String(parsed.data.amountPaid),
+  });
+  sendMail({ to: parsed.data.fanEmail, subject: fanTpl.subject, html: fanTpl.html }).catch(() => {});
+
+  // Email admin notification
+  const adminEmail = (platformConfig as any).adminEmail;
+  if (adminEmail) {
+    const adminTpl = emailAdminNewCall({
+      fanName: parsed.data.fanName,
+      fanEmail: parsed.data.fanEmail,
+      session: sessionLabel,
+      amount: String(parsed.data.amountPaid),
+    });
+    sendMail({ to: adminEmail, subject: adminTpl.subject, html: adminTpl.html }).catch(() => {});
+  }
+
   res.status(201).json({ ...row, amountPaid: Number(row.amountPaid), createdAt: row.createdAt.toISOString() });
 });
 
@@ -58,11 +78,11 @@ router.patch("/calls/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [row] = await db.update(callsTable).set(parsed.data).where(eq(callsTable.id, params.data.id)).returning();
-  if (!row) {
-    res.status(404).json({ error: "Booking not found" });
-    return;
-  }
+  const [row] = await db
+    .update(callsTable)
+    .set({ status: parsed.data.status })
+    .where(eq(callsTable.id, params.data.id))
+    .returning();
   res.json({ ...row, amountPaid: Number(row.amountPaid), createdAt: row.createdAt.toISOString() });
 });
 

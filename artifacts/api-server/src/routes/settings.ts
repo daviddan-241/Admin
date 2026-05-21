@@ -33,11 +33,19 @@ export const platformConfig = {
   xHandle: process.env.X_USERNAME || "",
   tiktokHandle: process.env.TIKTOK_USERNAME || "",
   githubRemote: process.env.GITHUB_REMOTE || "",
+  // Email / SMTP
+  adminEmail: process.env.ADMIN_EMAIL || "",
+  smtpHost: process.env.SMTP_HOST || "",
+  smtpPort: process.env.SMTP_PORT || "587",
+  smtpUser: process.env.SMTP_USER || "",
+  smtpPass: process.env.SMTP_PASS || "",
+  smtpFrom: process.env.SMTP_FROM || "",
 };
 
 const NUMERIC_KEYS = new Set([
   "msgPrice","msgFreeLimit","subMonthly","subQuarterly","subLifetime",
   "requestPrice","tipMin","callWa5","callZoom15","callZoom30","callPrivate60",
+  "smtpPort",
 ]);
 
 export async function loadSettingsFromDb(): Promise<void> {
@@ -73,6 +81,12 @@ function syncEnvFromConfig(): void {
   if (platformConfig.xHandle) process.env.X_USERNAME = platformConfig.xHandle;
   if (platformConfig.tiktokHandle) process.env.TIKTOK_USERNAME = platformConfig.tiktokHandle;
   if (platformConfig.adminPassword) process.env.ADMIN_PASSWORD = platformConfig.adminPassword;
+  if (platformConfig.adminEmail) process.env.ADMIN_EMAIL = platformConfig.adminEmail;
+  if (platformConfig.smtpHost) process.env.SMTP_HOST = platformConfig.smtpHost;
+  if (platformConfig.smtpPort) process.env.SMTP_PORT = String(platformConfig.smtpPort);
+  if (platformConfig.smtpUser) process.env.SMTP_USER = platformConfig.smtpUser;
+  if (platformConfig.smtpPass) process.env.SMTP_PASS = platformConfig.smtpPass;
+  if (platformConfig.smtpFrom) process.env.SMTP_FROM = platformConfig.smtpFrom;
 }
 
 router.get("/settings", adminAuth, (_req, res): void => {
@@ -83,12 +97,14 @@ router.get("/settings", adminAuth, (_req, res): void => {
     rapidApiKey: platformConfig.rapidApiKey ? "***" + platformConfig.rapidApiKey.slice(-6) : "",
     githubRemote: platformConfig.githubRemote ? platformConfig.githubRemote.replace(/\/\/.*@/, "//***@") : "",
     adminPassword: "***",
+    smtpPass: platformConfig.smtpPass ? "***" + platformConfig.smtpPass.slice(-3) : "",
     _raw: {
       flutterwaveSecretKey: platformConfig.flutterwaveSecretKey,
       xBearerToken: platformConfig.xBearerToken,
       rapidApiKey: platformConfig.rapidApiKey,
       githubRemote: platformConfig.githubRemote,
       adminPassword: platformConfig.adminPassword,
+      smtpPass: platformConfig.smtpPass,
     },
   };
   res.json(safe);

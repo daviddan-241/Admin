@@ -3,8 +3,10 @@ import { Layout } from "@/components/layout";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { usePlatformConfig } from "@/hooks/use-platform-config";
-import { Lock, Star, ShieldCheck, Crown, Sparkles, Heart, PlayCircle, Image as ImageIcon, CheckCircle2, ChevronRight, MessageCircle, AlertCircle } from "lucide-react";
+import { Lock, Star, ShieldCheck, Crown, Sparkles, Heart, PlayCircle, Image as ImageIcon, CheckCircle2, ChevronRight, MessageCircle, AlertCircle, Mail, Loader2, Key } from "lucide-react";
 import { Link } from "wouter";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const IMAGES = [
   "https://i.ibb.co/PGCnqyX5/IMG-5005.jpg",
@@ -76,9 +78,37 @@ export default function Members() {
   ];
   const selectedTier = TIERS.find(t => t.id === selectedId) || TIERS[1];
 
+  const [checkEmail, setCheckEmail] = useState("");
+  const [checkLoading, setCheckLoading] = useState(false);
+  const [checkDone, setCheckDone] = useState(false);
+
   useEffect(() => {
     if (localStorage.getItem("sr_subscribed") === "true") setIsSubscribed(true);
   }, []);
+
+  async function handleCheckAccess() {
+    if (!checkEmail.trim()) return;
+    setCheckLoading(true);
+    try {
+      const r = await fetch(`${BASE}/api/vip/check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: checkEmail.trim().toLowerCase() }),
+      });
+      const data = await r.json() as { isVip?: boolean; tier?: string; expiresAt?: string | null };
+      if (data.isVip) {
+        localStorage.setItem("sr_subscribed", "true");
+        setIsSubscribed(true);
+        toast({ title: "Access confirmed! 🔑", description: `Your ${data.tier} membership is active.` });
+      } else {
+        setCheckDone(true);
+        toast({ title: "No active membership found", description: "Enter the email you used to pay. If you paid recently, it may still be processing.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Could not check", description: "Please try again.", variant: "destructive" });
+    }
+    setCheckLoading(false);
+  }
 
   const handleDmToSubscribe = () => {
     setDmSent(true);
@@ -262,6 +292,44 @@ export default function Members() {
             <button onClick={() => { localStorage.removeItem("sr_subscribed"); setIsSubscribed(false); }} className="text-white/30 text-sm hover:text-white/50 transition-colors underline">
               Not your account? Sign out
             </button>
+          </div>
+        </section>
+      )}
+
+      {/* ─── ALREADY PAID? CHECK ACCESS ─── */}
+      {!isSubscribed && (
+        <section className="py-16 bg-black border-t border-white/5">
+          <div className="container mx-auto px-4 max-w-md text-center">
+            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-5">
+              <Key className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-white/60 text-xs font-medium">Already a member?</span>
+            </div>
+            <h3 className="text-xl font-serif font-bold text-white mb-2">Check Your Access</h3>
+            <p className="text-white/40 text-sm mb-6">Enter the email you used to pay and we'll restore your access instantly.</p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={checkEmail}
+                onChange={e => setCheckEmail(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleCheckAccess()}
+                placeholder="your@email.com"
+                className="flex-1 h-11 rounded-xl bg-white/5 border border-white/10 text-white text-sm px-4 placeholder:text-white/20 focus:outline-none focus:border-amber-400/40"
+              />
+              <button
+                onClick={handleCheckAccess}
+                disabled={checkLoading || !checkEmail.trim()}
+                className="h-11 px-5 rounded-xl font-bold text-sm text-black disabled:opacity-40 transition-all flex items-center gap-2 shrink-0"
+                style={{background:"linear-gradient(135deg,#c9a84c,#f0d080)"}}
+              >
+                {checkLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                Verify
+              </button>
+            </div>
+            {checkDone && (
+              <p className="mt-3 text-xs text-white/30">
+                Not found? <Link href="/payment?for=subscription" className="text-amber-400 hover:text-amber-300 underline">Subscribe now</Link> or <Link href="/messages" className="text-amber-400 hover:text-amber-300 underline">message Sophie</Link> to sort it out.
+              </p>
+            )}
           </div>
         </section>
       )}
