@@ -29,7 +29,7 @@ type ChatMessage = { id: number; sessionId: number; senderType: "fan" | "hannah"
 type Call = { id: number; fanName: string; fanEmail: string; preferredDate: string; durationMinutes: number; amountPaid: number; status: string; notes: string | null; createdAt: string; };
 type ContentRequest = { id: number; fanName: string; fanEmail: string; requestType: string; description: string; amountPaid: number; status: string; createdAt: string; };
 type Tip = { id: number; fanName: string; fanEmail: string; amount: number; message: string | null; createdAt: string; };
-type Post = { id: number; imageUrl: string; caption: string | null; platform: string; isPrivate: boolean; watermark: boolean; createdAt: string; };
+type Post = { id: number; imageUrl: string; videoUrl?: string | null; thumbnailUrl?: string | null; mediaType?: string; caption: string | null; platform: string; isPrivate: boolean; watermark: boolean; createdAt: string; };
 type Stats = { totalMessages: number; totalCalls: number; totalRequests: number; totalTips: number; totalRevenue: number; };
 type Activity = { type: "message" | "call" | "request" | "tip"; fanName: string; amount: number; detail: string; timestamp: string; };
 type SocialConfig = { enabled: boolean; intervalHours: number; xHandle: string; tiktokHandle: string; hasXToken: boolean; hasRapidApiKey: boolean; };
@@ -308,7 +308,9 @@ export default function Admin() {
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [newPost, setNewPost] = useState({ imageUrl: "", caption: "", platform: "instagram", isPrivate: false });
   const [addingPost, setAddingPost] = useState(false);
-  const [postImageFile, setPostImageFile] = useState<string | null>(null);
+  const [postMediaFile, setPostMediaFile] = useState<string | null>(null);
+  const [postMediaType, setPostMediaType] = useState<"image" | "video">("image");
+  const [postMediaMime, setPostMediaMime] = useState<string>("");
   const postImageRef = useRef<HTMLInputElement>(null);
   const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
   const [giftCardFilter, setGiftCardFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
@@ -529,20 +531,45 @@ export default function Admin() {
   };
 
   const addPost = async () => {
-    if (!newPost.imageUrl && !postImageFile) return;
+    if (!newPost.imageUrl && !postMediaFile) return;
     setAddingPost(true);
     try {
       let imageUrl = newPost.imageUrl;
-      if (postImageFile) {
+      let videoUrl: string | undefined;
+      let mediaType = "image";
+
+      if (postMediaFile) {
+        const isVid = postMediaType === "video";
         const upRes = await fetch(`${API}/upload`, {
           method: "POST", headers: { "Content-Type": "application/json", ...h },
-          body: JSON.stringify({ image: postImageFile, filename: `post_${Date.now()}` }),
+          body: JSON.stringify({
+            [isVid ? "video" : "image"]: postMediaFile,
+            filename: `post_${Date.now()}`,
+          }),
         });
-        if (upRes.ok) { const d = await upRes.json(); imageUrl = d.url; }
+        if (upRes.ok) {
+          const d = await upRes.json();
+          if (isVid) { videoUrl = d.url; imageUrl = ""; mediaType = "video"; }
+          else { imageUrl = d.url; mediaType = "image"; }
+        }
+      } else if (newPost.imageUrl) {
+        // detect if pasted URL is a video by extension
+        const ext = newPost.imageUrl.split("?")[0].split(".").pop()?.toLowerCase() || "";
+        if (["mp4", "mov", "webm", "avi", "3gp", "mpeg"].includes(ext)) {
+          videoUrl = newPost.imageUrl;
+          imageUrl = "";
+          mediaType = "video";
+        }
       }
-      await fetch(`${API}/posts`, { method: "POST", headers: { "Content-Type": "application/json", ...h }, body: JSON.stringify({ ...newPost, imageUrl, watermark: false }) });
-      setNewPost({ imageUrl: "", caption: "", platform: "instagram", isPrivate: false });
-      setPostImageFile(null);
+
+      await fetch(`${API}/posts`, {
+        method: "POST", headers: { "Content-Type": "application/json", ...h },
+        body: JSON.stringify({ ...newPost, imageUrl: imageUrl || "/uploads/posts/default.png", videoUrl, mediaType, watermark: false }),
+      });
+      setNewPost({ imageUrl: "", caption: "", platform: "custom", isPrivate: false });
+      setPostMediaFile(null);
+      setPostMediaType("image");
+      setPostMediaMime("");
       toast({ title: "Published to feed!" });
       fetchAll();
     } catch { toast({ title: "Failed to publish", variant: "destructive" }); }
@@ -1405,64 +1432,117 @@ export default function Admin() {
                     <ImagePlus className="w-5 h-5" style={{ color: GOLD }} /> Publish New Post
                   </h3>
                   <div className="space-y-4">
-                    {/* Image upload OR URL */}
                     <input ref={postImageRef} type="file" accept="image/*,video/*" className="hidden" onChange={e => {
                       const f = e.target.files?.[0];
                       if (!f) return;
+                      const isVid = f.type.startsWith("video/");
+                      setPostMediaType(isVid ? "video" : "image");
+                      setPostMediaMime(f.type);
                       const reader = new FileReader();
-                      reader.onload = ev => { setPostImageFile(ev.target?.result as string); setNewPost(p => ({ ...p, imageUrl: "" })); };
+                      reader.onload = ev => { setPostMediaFile(ev.target?.result as string); setNewPost(p => ({ ...p, imageUrl: "" })); };
                       reader.readAsDataURL(f);
                     }} />
-                    <div className="flex gap-3">
+
+                    <div className="flex gap-4">
                       <div onClick={() => postImageRef.current?.click()}
-                        className="relative w-28 h-28 rounded-xl border-2 border-dashed border-white/20 hover:border-amber-400/40 cursor-pointer transition-all flex items-center justify-center overflow-hidden bg-black/30 shrink-0">
-                        {postImageFile ? (
-                          <img src={postImageFile} alt="preview" className="absolute inset-0 w-full h-full object-cover" />
+                        className="relative w-36 h-36 rounded-2xl border-2 border-dashed border-white/20 hover:border-amber-400/50 cursor-pointer transition-all flex items-center justify-center overflow-hidden bg-black/40 shrink-0 group">
+                        {postMediaFile && postMediaType === "video" ? (
+                          <>
+                            <video src={postMediaFile} className="absolute inset-0 w-full h-full object-cover" muted playsInline />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                              <div className="w-10 h-10 rounded-full bg-black/70 border border-white/30 flex items-center justify-center">
+                                <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                              </div>
+                            </div>
+                            <div className="absolute bottom-1 left-0 right-0 text-center">
+                              <span className="text-[9px] bg-amber-400 text-black font-bold px-1.5 py-0.5 rounded-full">VIDEO</span>
+                            </div>
+                          </>
+                        ) : postMediaFile ? (
+                          <img src={postMediaFile} alt="preview" className="absolute inset-0 w-full h-full object-cover" />
                         ) : newPost.imageUrl ? (
                           <img src={newPost.imageUrl} alt="preview" className="absolute inset-0 w-full h-full object-cover" onError={e => ((e.target as HTMLImageElement).style.display = "none")} />
                         ) : (
-                          <div className="text-center">
-                            <Camera className="w-5 h-5 text-white/30 mx-auto mb-1" />
-                            <p className="text-white/30 text-[10px]">Upload photo</p>
+                          <div className="text-center group-hover:scale-105 transition-transform">
+                            <Video className="w-7 h-7 text-white/30 mx-auto mb-1" />
+                            <p className="text-white/30 text-[10px]">Photo or Video</p>
+                            <p className="text-white/20 text-[9px]">Tap to choose</p>
+                          </div>
+                        )}
+                        {(postMediaFile || newPost.imageUrl) && (
+                          <button onClick={e => { e.stopPropagation(); setPostMediaFile(null); setPostMediaType("image"); setNewPost(p => ({ ...p, imageUrl: "" })); }}
+                            className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X className="w-3 h-3 text-white" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex-1 flex flex-col gap-3">
+                        <div>
+                          <p className="text-white/40 text-xs mb-1.5 font-bold uppercase tracking-wider">Or paste a URL</p>
+                          <Input placeholder="https://... (image or video link)"
+                            value={newPost.imageUrl}
+                            onChange={e => { setNewPost(p => ({ ...p, imageUrl: e.target.value })); if (e.target.value) { setPostMediaFile(null); setPostMediaType("image"); } }}
+                            className="bg-black/50 border-white/10 text-white rounded-xl placeholder:text-white/20" />
+                        </div>
+                        <p className="text-white/25 text-xs">MP4 · MOV · WebM · AVI · JPG · PNG · GIF · WebP</p>
+                        {postMediaType === "video" && postMediaFile && (
+                          <div className="flex items-center gap-2 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-2">
+                            <Play className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />
+                            <p className="text-amber-400 text-xs font-bold">Video ready — will show inline player on feed</p>
                           </div>
                         )}
                       </div>
-                      <div className="flex-1 flex flex-col gap-2">
-                        <Input placeholder="Or paste image/video URL" value={newPost.imageUrl}
-                          onChange={(e) => { setNewPost((p) => ({ ...p, imageUrl: e.target.value })); if (e.target.value) setPostImageFile(null); }}
-                          className="bg-black/50 border-white/10 text-white rounded-xl placeholder:text-white/20" />
-                        <p className="text-white/25 text-xs">Upload a file from your device, or paste a URL</p>
-                      </div>
                     </div>
+
                     <Textarea placeholder="Caption (optional)" value={newPost.caption}
-                      onChange={(e) => setNewPost((p) => ({ ...p, caption: e.target.value }))}
-                      className="bg-black/50 border-white/10 text-white rounded-xl resize-none placeholder:text-white/20" />
+                      onChange={e => setNewPost(p => ({ ...p, caption: e.target.value }))}
+                      className="bg-black/50 border-white/10 text-white rounded-xl resize-none placeholder:text-white/20" rows={2} />
+
                     <div className="flex gap-4 items-center flex-wrap">
-                      <select value={newPost.platform} onChange={(e) => setNewPost((p) => ({ ...p, platform: e.target.value }))}
+                      <select value={newPost.platform} onChange={e => setNewPost(p => ({ ...p, platform: e.target.value }))}
                         className="bg-black/60 border border-white/10 text-white rounded-xl px-3 py-2 text-sm">
+                        <option value="custom">Exclusive (Custom)</option>
                         <option value="instagram">Instagram</option>
                         <option value="twitter">X / Twitter</option>
                         <option value="tiktok">TikTok</option>
-                        <option value="custom">Custom</option>
                       </select>
-                      <label className="flex items-center gap-2 text-sm text-white/40 cursor-pointer">
+                      <label className="flex items-center gap-2 text-sm text-white/40 cursor-pointer select-none">
                         <input type="checkbox" checked={newPost.isPrivate}
-                          onChange={(e) => setNewPost((p) => ({ ...p, isPrivate: e.target.checked }))} className="rounded" />
+                          onChange={e => setNewPost(p => ({ ...p, isPrivate: e.target.checked }))} className="rounded" />
                         <Lock className="w-3.5 h-3.5" /> VIP only
                       </label>
                     </div>
-                    <button onClick={addPost} disabled={addingPost || (!newPost.imageUrl && !postImageFile)}
-                      className="h-11 px-6 rounded-xl font-bold text-sm text-black disabled:opacity-40 transition-all"
+                    <button onClick={addPost} disabled={addingPost || (!newPost.imageUrl && !postMediaFile)}
+                      className="h-12 px-8 rounded-xl font-black text-sm text-black disabled:opacity-40 transition-all flex items-center gap-2"
                       style={{ background: GOLD_GRAD }}>
-                      {addingPost ? "Publishing…" : "Publish to Feed"}
+                      {addingPost ? <><RefreshCw className="w-4 h-4 animate-spin" /> Publishing…</> :
+                       postMediaType === "video" && postMediaFile ? <><Play className="w-4 h-4 fill-black" /> Publish Video</> :
+                       <><ImagePlus className="w-4 h-4" /> Publish to Feed</>}
                     </button>
                   </div>
                 </GoldCard>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {posts.map((p) => (
+                  {posts.map((p) => {
+                    const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
+                    const thumb = p.thumbnailUrl || p.imageUrl;
+                    const thumbSrc = thumb?.startsWith("/uploads/") ? `${API_BASE}${thumb}` : thumb;
+                    const isVid = p.mediaType === "video" || !!p.videoUrl;
+                    return (
                     <div key={p.id} className="relative rounded-2xl overflow-hidden aspect-square group border border-white/5">
-                      <img src={p.imageUrl} alt={p.caption || ""} className="w-full h-full object-cover" />
+                      {isVid ? (
+                        <div className="w-full h-full bg-black flex items-center justify-center">
+                          <img src={thumbSrc || ""} alt="" className="w-full h-full object-cover opacity-80" onError={e => ((e.target as HTMLImageElement).style.display="none")} />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-full bg-black/70 border border-white/30 flex items-center justify-center">
+                              <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <img src={p.imageUrl?.startsWith("/uploads/") ? `${API_BASE}${p.imageUrl}` : p.imageUrl} alt={p.caption || ""} className="w-full h-full object-cover" onError={e => ((e.target as HTMLImageElement).style.opacity="0.3")} />
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all" />
                       <div className="absolute top-2 left-2 flex items-center gap-1 text-white/80 text-xs bg-black/60 px-2 py-0.5 rounded-full backdrop-blur">
                         {platformIcon(p.platform)} {p.platform}
