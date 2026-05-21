@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X, Instagram, Twitter, Music2, Sun, Moon, Crown, Lock } from "lucide-react";
 import { ThemeContext } from "@/App";
+import { CookieBanner } from "@/components/cookie-banner";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -158,6 +159,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </footer>
+      <CookieBanner />
     </div>
   );
 }
