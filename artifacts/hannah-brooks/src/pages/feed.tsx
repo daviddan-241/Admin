@@ -52,13 +52,13 @@ function Watermark() {
     <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="text-white/12 font-serif font-bold text-3xl tracking-widest rotate-[-35deg] whitespace-nowrap drop-shadow">
-          HANNAH BROOKS
+          SOPHIE RAIN
         </span>
       </div>
       <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full">
-        <img src="/logo-hb.png" alt="" className="w-3 h-3 rounded-full object-cover"
+        <img src="/logo-sr.png" alt="" className="w-3 h-3 rounded-full object-cover"
           onError={e => { const t = e.target as HTMLImageElement; t.style.display="none"; }} />
-        <span className="text-white/50 text-[9px] font-medium">@hannahbrooks</span>
+        <span className="text-white/50 text-[9px] font-medium">@sophieraiin</span>
       </div>
     </div>
   );

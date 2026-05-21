@@ -128,7 +128,7 @@ function HannahAvatar({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
         const t = e.target as HTMLImageElement;
         t.style.display="none";
         t.parentElement!.style.background="linear-gradient(135deg,#c9a84c,#f0d080)";
-        t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:12px;font-family:serif">HB</div>';
+        t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:12px;font-family:serif">SR</div>';
       }} />
     </div>
   );
