@@ -75,6 +75,7 @@ export default function Store() {
       email: email.trim(),
       description: `Custom ${REQUEST_TYPES.find(r => r.id === requestType)?.label} request`,
       txRef,
+      fallbackUrl: `/payment?for=request&desc=${encodeURIComponent('Custom ' + (REQUEST_TYPES.find(r => r.id === requestType)?.label ?? 'Request'))}&amount=${config.requestPrice}`,
       onSuccess: async (data) => {
         setPaying(false);
         try {
@@ -112,6 +113,7 @@ export default function Store() {
       email: email.trim(),
       description: tipMessage.trim() ? `Tip: ${tipMessage.trim()}` : "Tip for Hannah",
       txRef,
+      fallbackUrl: `/payment?for=tip&amount=${amt}`,
       onSuccess: async (data) => {
         setPaying(false);
         try {

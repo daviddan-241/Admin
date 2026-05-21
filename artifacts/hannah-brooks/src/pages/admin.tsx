@@ -106,9 +106,14 @@ function FanAvatar({ session, size = "sm" }: { session: { fanName: string; fanAv
 function HannahAvatar({ size = "sm" }: { size?: "sm" | "md" }) {
   const dim = size === "sm" ? "w-9 h-9" : "w-12 h-12";
   return (
-    <div className={`${dim} rounded-full shrink-0 flex items-center justify-center font-serif font-bold text-black shadow-lg`}
-      style={{ background: GOLD_GRAD }}>
-      SR
+    <div className={`${dim} rounded-full shrink-0 overflow-hidden border border-amber-400/30 shadow-lg`}>
+      <img src={logoHB} alt="Hannah" className="w-full h-full object-cover"
+        onError={e => {
+          const t = e.target as HTMLImageElement;
+          t.style.display = "none";
+          t.parentElement!.style.background = GOLD_GRAD;
+          t.parentElement!.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:11px;font-family:serif">HB</div>';
+        }} />
     </div>
   );
 }

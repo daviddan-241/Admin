@@ -106,6 +106,7 @@ export default function Calls() {
       phone: phone.trim(),
       description: `${selected.label} · ${selected.mins} min call with Hannah`,
       txRef,
+      fallbackUrl: `/payment?for=call&desc=${encodeURIComponent(selected.label + ' · ' + selected.mins + ' min call')}&amount=${selected.price}`,
       onSuccess: async (data) => {
         setPaying(false);
         try {

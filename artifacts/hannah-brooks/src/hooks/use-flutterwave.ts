@@ -32,6 +32,7 @@ export function useFlutterwave() {
     txRef,
     onSuccess,
     onClose,
+    fallbackUrl,
   }: {
     amount: number;
     name: string;
@@ -41,14 +42,19 @@ export function useFlutterwave() {
     txRef: string;
     onSuccess: (data: Record<string, unknown>) => void;
     onClose?: () => void;
+    fallbackUrl?: string;
   }) => {
-    if (!window.FlutterwaveCheckout) {
-      alert("Payment gateway is loading — please try again in a moment.");
-      return;
-    }
     const pubKey = config.flutterwavePublicKey;
     if (!pubKey) {
-      alert("Payments are being set up. Please contact Hannah directly to complete this booking.");
+      if (fallbackUrl) {
+        window.location.assign(fallbackUrl);
+      } else {
+        window.location.assign("/payment?for=general");
+      }
+      return;
+    }
+    if (!window.FlutterwaveCheckout) {
+      alert("Payment gateway is loading — please try again in a moment.");
       return;
     }
     window.FlutterwaveCheckout({

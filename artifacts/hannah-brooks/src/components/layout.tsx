@@ -24,10 +24,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-9 h-9 rounded-full overflow-hidden group-hover:opacity-80 transition-opacity border border-amber-400/20">
-              <img src="/logo-sr.png" alt="SR" className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; t.style.display="none"; t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#c9a84c,#f0d080);font-weight:900;color:#000;font-size:12px;font-family:serif">SR</div>'; }} />
+              <img src="/logo-hb.png" alt="HB" className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; t.style.display="none"; t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#c9a84c,#f0d080);font-weight:900;color:#000;font-size:12px;font-family:serif">HB</div>'; }} />
             </div>
             <span className="font-serif text-xl font-bold tracking-tight text-white group-hover:opacity-80 transition-opacity hidden sm:block" style={{letterSpacing:"0.05em"}}>
-              SOPHIE <span style={{color:"#c9a84c"}}>RAIN</span>
+              HANNAH <span style={{color:"#c9a84c"}}>BROOKS</span>
             </span>
           </Link>
 
@@ -97,11 +97,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="grid md:grid-cols-4 gap-10 mb-12">
             <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center font-serif font-black text-black text-sm" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>SR</div>
-                <span className="font-serif text-xl font-bold text-white">SOPHIE <span style={{color:"#c9a84c"}}>RAIN</span></span>
+                <div className="w-10 h-10 rounded-full overflow-hidden border border-amber-400/20">
+                <img src="/logo-hb.png" alt="HB" className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; t.style.display="none"; t.parentElement!.style.background="linear-gradient(135deg,#c9a84c,#f0d080)"; t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:12px;font-family:serif">HB</div>'; }} />
+              </div>
+                <span className="font-serif text-xl font-bold text-white">HANNAH <span style={{color:"#c9a84c"}}>BROOKS</span></span>
               </div>
               <p className="text-white/40 text-sm leading-relaxed max-w-xs">
-                Miami-born creator, top earner, fitness lover. Exclusive digital home — no algorithms, no limits.
+                Creator, entertainer &amp; fitness lover. Your exclusive digital home — real content, no limits.
               </p>
               <p className="text-white/20 text-xs mt-4">18+ Only · Adult Content Platform</p>
             </div>
@@ -146,7 +148,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-white/20">© {new Date().getFullYear()} Sophie Rain · All rights reserved</p>
+            <p className="text-xs text-white/20">© {new Date().getFullYear()} Hannah Brooks · All rights reserved</p>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
