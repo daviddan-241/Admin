@@ -1,17 +1,14 @@
 import { Router, type IRouter } from "express";
+import { db, settingsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { adminAuth } from "../middleware/admin";
 
 const router: IRouter = Router();
 
-// In-memory config store — persists while server is running.
-// On restart, values fall back to env vars.
 export const platformConfig = {
-  // Payment
   flutterwavePublicKey: process.env.FLW_PUBLIC_KEY || "",
   flutterwaveSecretKey: process.env.FLW_SECRET_KEY || "",
   currency: process.env.PAYMENT_CURRENCY || "USD",
-
-  // Prices
   msgPrice: parseFloat(process.env.MSG_PRICE || "9.99"),
   msgFreeLimit: parseInt(process.env.MSG_FREE_LIMIT || "3", 10),
   subMonthly: parseFloat(process.env.SUB_MONTHLY || "24.99"),
@@ -23,8 +20,6 @@ export const platformConfig = {
   callZoom15: parseFloat(process.env.CALL_ZOOM15 || "79.99"),
   callZoom30: parseFloat(process.env.CALL_ZOOM30 || "149.99"),
   callPrivate60: parseFloat(process.env.CALL_PRIVATE60 || "299.99"),
-
-  // Profile
   whatsappNumber: process.env.WHATSAPP_NUMBER || "13055550000",
   instagramUrl: process.env.INSTAGRAM_URL || "https://instagram.com/sophieraiin",
   twitterUrl: process.env.TWITTER_URL || "https://x.com/sophieraiin",
@@ -32,31 +27,62 @@ export const platformConfig = {
   onlyfansUrl: process.env.ONLYFANS_URL || "https://onlyfans.com/sophieraiin",
   creatorBio: process.env.CREATOR_BIO || "Miami-born creator, OnlyFans top earner, and your favourite girl on the internet. This is my exclusive digital home — no filters, no limits.",
   creatorTagline: process.env.CREATOR_TAGLINE || "Miami Creator · Entertainer · OnlyFans Top Earner",
-
-  // Admin
   adminPassword: process.env.ADMIN_PASSWORD || "sophie2024!",
-
-  // Social sync (mirrors socialRouter config)
   xBearerToken: process.env.X_BEARER_TOKEN || "",
   rapidApiKey: process.env.RAPIDAPI_KEY || "",
   xHandle: process.env.X_USERNAME || "",
   tiktokHandle: process.env.TIKTOK_USERNAME || "",
-
-  // GitHub
   githubRemote: process.env.GITHUB_REMOTE || "",
 };
 
-// GET all settings (redact secrets partially)
+const NUMERIC_KEYS = new Set([
+  "msgPrice","msgFreeLimit","subMonthly","subQuarterly","subLifetime",
+  "requestPrice","tipMin","callWa5","callZoom15","callZoom30","callPrivate60",
+]);
+
+export async function loadSettingsFromDb(): Promise<void> {
+  try {
+    const rows = await db.select().from(settingsTable);
+    for (const row of rows) {
+      const key = row.key as keyof typeof platformConfig;
+      if (!(key in platformConfig)) continue;
+      const raw = row.value;
+      if (NUMERIC_KEYS.has(key)) {
+        (platformConfig as Record<string, unknown>)[key] = parseFloat(raw);
+      } else {
+        (platformConfig as Record<string, unknown>)[key] = raw;
+      }
+    }
+    syncEnvFromConfig();
+  } catch {
+    // DB might not have settings table yet; will be created on first save
+  }
+}
+
+async function saveSettingToDb(key: string, value: string): Promise<void> {
+  await db
+    .insert(settingsTable)
+    .values({ key, value })
+    .onConflictDoUpdate({ target: settingsTable.key, set: { value, updatedAt: new Date() } });
+}
+
+function syncEnvFromConfig(): void {
+  if (platformConfig.xBearerToken) process.env.X_BEARER_TOKEN = platformConfig.xBearerToken;
+  if (platformConfig.rapidApiKey) process.env.RAPIDAPI_KEY = platformConfig.rapidApiKey;
+  if (platformConfig.githubRemote) process.env.GITHUB_REMOTE = platformConfig.githubRemote;
+  if (platformConfig.xHandle) process.env.X_USERNAME = platformConfig.xHandle;
+  if (platformConfig.tiktokHandle) process.env.TIKTOK_USERNAME = platformConfig.tiktokHandle;
+  if (platformConfig.adminPassword) process.env.ADMIN_PASSWORD = platformConfig.adminPassword;
+}
+
 router.get("/settings", adminAuth, (_req, res): void => {
   const safe = {
     ...platformConfig,
-    flutterwavePublicKey: platformConfig.flutterwavePublicKey,
     flutterwaveSecretKey: platformConfig.flutterwaveSecretKey ? "***" + platformConfig.flutterwaveSecretKey.slice(-4) : "",
     xBearerToken: platformConfig.xBearerToken ? "***" + platformConfig.xBearerToken.slice(-6) : "",
     rapidApiKey: platformConfig.rapidApiKey ? "***" + platformConfig.rapidApiKey.slice(-6) : "",
     githubRemote: platformConfig.githubRemote ? platformConfig.githubRemote.replace(/\/\/.*@/, "//***@") : "",
     adminPassword: "***",
-    // expose raw for editing
     _raw: {
       flutterwaveSecretKey: platformConfig.flutterwaveSecretKey,
       xBearerToken: platformConfig.xBearerToken,
@@ -68,29 +94,28 @@ router.get("/settings", adminAuth, (_req, res): void => {
   res.json(safe);
 });
 
-// PATCH individual settings
-router.patch("/settings", adminAuth, (req, res): void => {
+router.patch("/settings", adminAuth, async (req, res): Promise<void> => {
   const body = req.body as Partial<typeof platformConfig>;
   const allowed = Object.keys(platformConfig) as (keyof typeof platformConfig)[];
+  const toSave: Array<{ key: string; value: string }> = [];
+
   for (const key of allowed) {
     if (key in body) {
       const val = body[key];
       if (typeof val === typeof platformConfig[key]) {
         (platformConfig as Record<string, unknown>)[key] = val;
+        toSave.push({ key, value: String(val) });
       }
     }
   }
-  // sync env vars for social/github routes that read process.env at startup
-  if (body.xBearerToken !== undefined) process.env.X_BEARER_TOKEN = body.xBearerToken;
-  if (body.rapidApiKey !== undefined) process.env.RAPIDAPI_KEY = body.rapidApiKey;
-  if (body.githubRemote !== undefined) process.env.GITHUB_REMOTE = body.githubRemote;
-  if (body.xHandle !== undefined) process.env.X_USERNAME = body.xHandle;
-  if (body.tiktokHandle !== undefined) process.env.TIKTOK_USERNAME = body.tiktokHandle;
+
+  syncEnvFromConfig();
+
+  await Promise.all(toSave.map(({ key, value }) => saveSettingToDb(key, value)));
 
   res.json({ ok: true });
 });
 
-// Public endpoint — returns only what the frontend needs (prices, keys, links)
 router.get("/config/public", (_req, res): void => {
   res.json({
     flutterwavePublicKey: platformConfig.flutterwavePublicKey,

@@ -2,10 +2,11 @@ import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import { db, postsTable } from "@workspace/db";
 import { adminAuth } from "../middleware/admin";
+import { activityEmitter } from "../emitter";
 
 const router: IRouter = Router();
 
-const PLATFORMS = ["instagram", "twitter", "tiktok", "custom"] as const;
+const PLATFORMS = ["instagram", "twitter", "tiktok", "x", "custom"] as const;
 
 function isValidUrl(url: string) {
   return url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/uploads/");
@@ -51,7 +52,15 @@ router.post("/posts", adminAuth, async (req, res): Promise<void> => {
     return;
   }
   const [row] = await db.insert(postsTable).values(data).returning();
-  res.status(201).json({ ...row, createdAt: row.createdAt.toISOString() });
+  const post = { ...row, createdAt: row.createdAt.toISOString() };
+
+  activityEmitter.emit("activity", {
+    type: "new_post",
+    post: post as Record<string, unknown>,
+    timestamp: new Date().toISOString(),
+  });
+
+  res.status(201).json(post);
 });
 
 router.delete("/posts/:id", adminAuth, async (req, res): Promise<void> => {
@@ -61,6 +70,13 @@ router.delete("/posts/:id", adminAuth, async (req, res): Promise<void> => {
     return;
   }
   await db.delete(postsTable).where(eq(postsTable.id, id));
+
+  activityEmitter.emit("activity", {
+    type: "delete_post",
+    postId: id,
+    timestamp: new Date().toISOString(),
+  });
+
   res.status(204).send();
 });
 

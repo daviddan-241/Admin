@@ -5,3 +5,4 @@ export * from "./tips";
 export * from "./posts";
 export * from "./chat";
 export * from "./gift_cards";
+export * from "./settings";
