@@ -60,9 +60,9 @@ export default function Calls() {
               <p className="text-amber-400 text-xs font-bold mb-2 uppercase tracking-wider">Next Step</p>
               <p className="text-white/70 text-sm">Head to Messages and tell Sophie: <span className="text-amber-400 font-semibold">"I'd like to book a {selected.mins}-min {selected.label} call for ${selected.price}"</span></p>
             </div>
-            <Link href="/messages">
+            <Link href="/payment?for=call">
               <button className="h-12 px-8 rounded-xl font-bold text-sm text-black mb-4" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>
-                <MessageCircle className="w-4 h-4 inline mr-2" />Message Sophie to Pay
+                <MessageCircle className="w-4 h-4 inline mr-2" />Pay for Your Call
               </button>
             </Link>
             <br />

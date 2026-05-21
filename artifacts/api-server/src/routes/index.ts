@@ -13,6 +13,8 @@ import socialRouter from "./social";
 import settingsRouter from "./settings";
 import aiGenerateRouter from "./ai-generate";
 import aiSchedulerRouter from "./ai-scheduler";
+import giftCardsRouter from "./gift_cards";
+import uploadRouter from "./upload";
 
 const router: IRouter = Router();
 
@@ -30,5 +32,7 @@ router.use(socialRouter);
 router.use(settingsRouter);
 router.use(aiGenerateRouter);
 router.use(aiSchedulerRouter);
+router.use(giftCardsRouter);
+router.use(uploadRouter);
 
 export default router;

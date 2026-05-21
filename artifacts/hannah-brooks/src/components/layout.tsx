@@ -22,8 +22,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center font-serif font-black text-black text-sm group-hover:opacity-80 transition-opacity" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>
-              SR
+            <div className="w-9 h-9 rounded-full overflow-hidden group-hover:opacity-80 transition-opacity border border-amber-400/20">
+              <img src="/logo-sr.png" alt="SR" className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; t.style.display="none"; t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#c9a84c,#f0d080);font-weight:900;color:#000;font-size:12px;font-family:serif">SR</div>'; }} />
             </div>
             <span className="font-serif text-xl font-bold tracking-tight text-white group-hover:opacity-80 transition-opacity hidden sm:block" style={{letterSpacing:"0.05em"}}>
               SOPHIE <span style={{color:"#c9a84c"}}>RAIN</span>

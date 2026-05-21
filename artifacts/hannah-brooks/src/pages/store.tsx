@@ -80,9 +80,9 @@ export default function Store() {
               <p className="text-amber-400 text-xs font-bold mb-2 uppercase tracking-wider">Next Step</p>
               <p className="text-white/70 text-sm">Message Sophie and mention your request so she can confirm payment and get started.</p>
             </div>
-            <Link href="/messages">
+                    <Link href="/payment?for=custom_request">
               <button className="h-12 px-8 rounded-xl font-bold text-sm text-black mb-4" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>
-                <MessageCircle className="w-4 h-4 inline mr-2" />DM Sophie to Pay
+                <MessageCircle className="w-4 h-4 inline mr-2" />Pay for Your Request
               </button>
             </Link>
             <br />

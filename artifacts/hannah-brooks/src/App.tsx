@@ -13,6 +13,7 @@ import Feed from "@/pages/feed";
 import Admin from "@/pages/admin";
 import Profile from "@/pages/profile";
 import Studio from "@/pages/studio";
+import Payment from "@/pages/payment";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/studio" component={Studio} />
       <Route path="/admin" component={Admin} />
+      <Route path="/payment" component={Payment} />
       <Route component={NotFound} />
     </Switch>
   );

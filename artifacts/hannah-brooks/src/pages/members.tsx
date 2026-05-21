@@ -221,14 +221,14 @@ export default function Members() {
 
                 {!dmSent ? (
                   <div className="space-y-3">
-                    <Link href="/messages">
+                    <Link href={`/payment?for=subscription_${selectedTier.id}`}>
                       <button
                         onClick={handleDmToSubscribe}
                         className="w-full h-14 rounded-xl font-black text-lg tracking-wider text-black hover:scale-[1.01] active:scale-[0.99] transition-transform shadow-xl flex items-center justify-center gap-3"
                         style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}
                       >
                         <MessageCircle className="w-5 h-5" />
-                        DM Sophie to Subscribe — ${selectedTier.price}
+                        Subscribe — ${selectedTier.price}
                       </button>
                     </Link>
                     <p className="text-center text-white/30 text-xs flex items-center justify-center gap-1">
@@ -240,9 +240,9 @@ export default function Members() {
                     <CheckCircle2 className="w-8 h-8 text-green-400 mx-auto mb-2" />
                     <p className="text-white font-bold mb-1">Almost there!</p>
                     <p className="text-white/50 text-sm mb-4">Go to Messages and tell Sophie you want the {selectedTier.name} plan (${selectedTier.price}). She'll confirm and activate your VIP access.</p>
-                    <Link href="/messages">
+                    <Link href="/payment?for=subscription">
                       <button className="h-10 px-6 rounded-xl font-bold text-sm text-black" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>
-                        Open Messages <ChevronRight className="w-4 h-4 inline" />
+                        Pay Now <ChevronRight className="w-4 h-4 inline" />
                       </button>
                     </Link>
                   </div>

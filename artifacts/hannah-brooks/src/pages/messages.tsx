@@ -121,11 +121,15 @@ function FilePreview({ att, isHannah }: { att: Attachment; isHannah: boolean }) 
 }
 
 function HannahAvatar({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
-  const s = { sm: "w-9 h-9 text-xs", md: "w-14 h-14 text-base", lg: "w-20 h-20 text-xl" }[size];
+  const s = { sm: "w-9 h-9", md: "w-14 h-14", lg: "w-20 h-20" }[size];
   return (
-    <div className={`${s} rounded-full shrink-0 relative overflow-hidden shadow-lg`}
-      style={{ background: "linear-gradient(135deg,#c9a84c,#f0d080,#a07830)" }}>
-      <div className="absolute inset-0 flex items-center justify-center font-serif font-bold text-black">SR</div>
+    <div className={`${s} rounded-full shrink-0 relative overflow-hidden shadow-lg border border-amber-400/20`}>
+      <img src="/sophie-chat-avatar.png" alt="Sophie" className="w-full h-full object-cover" onError={e => {
+        const t = e.target as HTMLImageElement;
+        t.style.display="none";
+        t.parentElement!.style.background="linear-gradient(135deg,#c9a84c,#f0d080)";
+        t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:12px;font-family:serif">SR</div>';
+      }} />
     </div>
   );
 }
