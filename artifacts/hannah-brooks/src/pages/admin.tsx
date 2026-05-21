@@ -1555,7 +1555,8 @@ export default function Admin() {
                         </button>
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
                   {posts.length === 0 && <div className="col-span-full text-center py-20 text-white/20 border border-white/5 rounded-2xl">No posts yet</div>}
                 </div>
               </div>
