@@ -158,7 +158,7 @@ function MessageBubble({ msg, fanName, fanAvatarUrl }: { msg: ChatMessage; fanNa
       <div className={`max-w-[75%] flex flex-col gap-0.5 ${isHannah ? "items-start" : "items-end"}`}>
         {isHannah && (
           <span className="text-[11px] ml-1 flex items-center gap-1" style={{ color: "#c9a84c" }}>
-            <Star className="w-3 h-3" /> Sophie Rain
+            <Star className="w-3 h-3" /> Hannah Brooks
           </span>
         )}
         <div className={`rounded-2xl overflow-hidden shadow-lg
@@ -443,8 +443,8 @@ export default function Messages() {
               <HannahAvatar size="lg" />
               <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-400 border-2 border-[#060606] shadow-lg" />
             </div>
-            <h1 className="text-3xl font-serif font-bold text-white mb-1">Sophie Rain</h1>
-            <p className="text-white/40 text-sm">Miami Creator · Online Now</p>
+            <h1 className="text-3xl font-serif font-bold text-white mb-1">Hannah Brooks</h1>
+            <p className="text-white/40 text-sm">Creator · Online Now</p>
             <div className="flex items-center gap-2 mt-3 rounded-full px-4 py-1.5 border"
               style={{ background: "rgba(201,168,76,0.08)", borderColor: "rgba(201,168,76,0.2)" }}>
               <Sparkles className="w-4 h-4" style={{ color: "#c9a84c" }} />
@@ -514,7 +514,7 @@ export default function Messages() {
           <HannahAvatar size="sm" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-white text-sm">Sophie Rain</span>
+              <span className="font-semibold text-white text-sm">Hannah Brooks</span>
               <div className="w-2 h-2 rounded-full bg-green-400" />
               <span className="text-[10px] text-green-400 font-medium">Online</span>
             </div>

@@ -132,7 +132,7 @@ function ImageCard({ post, onClick, index }: { post: Post; onClick: () => void; 
     <div onClick={onClick} className="relative break-inside-avoid rounded-2xl overflow-hidden cursor-pointer group border border-white/5 hover:border-amber-400/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(201,168,76,0.15)] hover:-translate-y-0.5 block">
       <img
         src={resolveUrl(post.imageUrl)}
-        alt={post.caption || post.content || "Sophie Rain"}
+        alt={post.caption || post.content || "Hannah Brooks"}
         className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
         style={{ aspectRatio: index % 5 === 0 ? "1/1.3" : index % 3 === 0 ? "1/0.8" : "1/1" }}
         loading="lazy"

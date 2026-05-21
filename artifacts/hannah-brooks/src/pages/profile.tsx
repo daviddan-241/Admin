@@ -51,7 +51,7 @@ function SophieAvatarLarge() {
     >
       <img
         src={IMAGES[0]}
-        alt="Sophie Rain"
+        alt="Hannah Brooks"
         className="w-full h-full object-cover object-top"
         crossOrigin="anonymous"
       />
@@ -121,7 +121,7 @@ export default function Profile() {
           <SophieAvatarLarge />
 
           <div className="mt-4 flex items-center gap-2">
-            <h1 className="text-4xl font-serif font-bold text-white">Sophie Rain</h1>
+            <h1 className="text-4xl font-serif font-bold text-white">Hannah Brooks</h1>
             <CheckCircle2 className="w-6 h-6 shrink-0" style={{ color: GOLD }} />
           </div>
           <p className="mt-1 text-white/40 text-sm tracking-widest uppercase">Miami Creator · Entertainer · Fitness</p>
@@ -135,7 +135,7 @@ export default function Profile() {
                 <Icon className="w-4 h-4" style={{ color }} />
               </a>
             ))}
-            <a href="https://onlyfans.com/sophierain" target="_blank" rel="noreferrer"
+            <a href="https://onlyfans.com/hannahbrooks" target="_blank" rel="noreferrer"
               className="w-10 h-10 rounded-full flex items-center justify-center border border-[#00AFF0]/30 hover:border-[#00AFF0]/60 transition-all hover:scale-110"
               style={{ background: "rgba(0,175,240,0.05)" }}>
               <span className="text-[#00AFF0] text-xs font-black">OF</span>
@@ -290,10 +290,10 @@ export default function Profile() {
             style={{ background: "rgba(255,255,255,0.02)" }}>
             <h2 className="text-white font-serif font-bold text-xl mb-4 flex items-center gap-2">
               <Sparkles className="w-5 h-5" style={{ color: GOLD }} />
-              About Sophie
+              About Hannah
             </h2>
             <div className="space-y-3 text-white/50 text-sm leading-relaxed">
-              <p>Hey! I'm Sophie Rain, born and raised in Miami, Florida. I went from working a normal waitressing job to becoming the #1 earner on OnlyFans — and I built this platform for the real ones 💕</p>
+              <p>Hey! I'm Hannah Brooks and I built this platform just for you — my real fans who deserve something real in return. No middlemen, no algorithms, just us 💕</p>
               <p>I personally read and reply to every single message. My fans are everything to me — this platform is our own special world, no algorithms or restrictions.</p>
               <p className="flex items-center gap-2">
                 <Heart className="w-4 h-4 shrink-0" style={{ color: GOLD }} />
