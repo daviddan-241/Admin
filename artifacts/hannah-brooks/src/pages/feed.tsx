@@ -37,14 +37,14 @@ function Watermark() {
     <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="text-white/12 font-serif font-bold text-3xl tracking-widest rotate-[-35deg] whitespace-nowrap drop-shadow">
-          HANNAH BROOKS
+          SOPHIE RAIN
         </span>
       </div>
       <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full">
         <div className="w-3 h-3 rounded-full bg-primary flex items-center justify-center">
-          <span className="text-[6px] font-bold text-white">HB</span>
+          <span className="text-[6px] font-bold text-white">SR</span>
         </div>
-        <span className="text-white/50 text-[9px] font-medium">hannahbrooks</span>
+        <span className="text-white/50 text-[9px] font-medium">sophieraiin</span>
       </div>
     </div>
   );
@@ -55,7 +55,7 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Post | null>(null);
   const [filter, setFilter] = useState<string>("all");
-  const isSubscribed = !!localStorage.getItem("hb_subscribed");
+  const isSubscribed = !!localStorage.getItem("sr_subscribed");
 
   useEffect(() => {
     fetch(`${BASE}/api/posts`)
@@ -78,9 +78,9 @@ export default function Feed() {
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-primary text-sm font-medium mb-5">
             <span className="w-2 h-2 bg-primary rounded-full animate-pulse" /> Live Feed
           </div>
-          <h1 className="text-4xl md:text-6xl font-serif font-bold text-white mb-3">Hannah's World</h1>
+          <h1 className="text-4xl md:text-6xl font-serif font-bold text-white mb-3">Sophie's World</h1>
           <p className="text-muted-foreground max-w-lg mx-auto text-base">
-            Behind-the-scenes moments, exclusive content, and daily life.
+            Behind-the-scenes moments, exclusive content, and Miami life.
           </p>
 
           {/* Platform filter */}
@@ -130,7 +130,7 @@ export default function Feed() {
                     >
                       <img
                         src={post.imageUrl}
-                        alt={post.caption || "Hannah Brooks"}
+                        alt={post.caption || "Sophie Rain"}
                         className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
                         style={{ aspectRatio: i % 5 === 0 ? "1/1.3" : i % 3 === 0 ? "1/0.8" : "1/1" }}
                         loading="lazy"
@@ -206,12 +206,12 @@ export default function Feed() {
           {/* Socials row */}
           <div className="mt-16 bg-card/20 border border-white/5 rounded-3xl p-8 text-center">
             <h3 className="text-2xl font-serif font-bold text-white mb-2">Follow on Every Platform</h3>
-            <p className="text-muted-foreground text-sm mb-7">Never miss a moment from Hannah</p>
+            <p className="text-muted-foreground text-sm mb-7">Never miss a moment from Sophie</p>
             <div className="flex flex-wrap justify-center gap-3">
               {[
-                { href: "https://instagram.com/hannahbrooks", label: "Instagram", icon: <Instagram className="w-4 h-4" />, cls: "from-purple-500 via-pink-500 to-orange-400" },
-                { href: "https://x.com/hannahbrooksxx", label: "X / Twitter", icon: <Twitter className="w-4 h-4" />, cls: "from-sky-400 to-blue-600" },
-                { href: "https://tiktok.com/@hannahbrooksxxx", label: "TikTok", icon: <Music2 className="w-4 h-4" />, cls: "from-pink-500 to-red-600" },
+                { href: "https://instagram.com/sophieraiin", label: "Instagram", icon: <Instagram className="w-4 h-4" />, cls: "from-purple-500 via-pink-500 to-orange-400" },
+                { href: "https://x.com/sophieraiin", label: "X / Twitter", icon: <Twitter className="w-4 h-4" />, cls: "from-sky-400 to-blue-600" },
+                { href: "https://tiktok.com/@sophieraiin", label: "TikTok", icon: <Music2 className="w-4 h-4" />, cls: "from-pink-500 to-red-600" },
               ].map((s) => (
                 <a key={s.label} href={s.href} target="_blank" rel="noreferrer">
                   <button className={`flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r ${s.cls} text-white text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200`}>

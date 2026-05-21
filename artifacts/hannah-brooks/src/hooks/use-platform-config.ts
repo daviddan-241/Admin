@@ -40,12 +40,12 @@ const DEFAULTS: PlatformConfig = {
   callZoom30: 149.99,
   callPrivate60: 299.99,
   whatsappNumber: "447700000000",
-  instagramUrl: "https://instagram.com/hannahbrooks",
-  twitterUrl: "https://x.com/hannahbrooksxx",
-  tiktokUrl: "https://tiktok.com/@hannahbrooksxxx",
-  onlyfansUrl: "https://onlyfans.com/hannahbrooks",
-  creatorBio: "British creator, adult entertainer, fitness lover, and dog mum. This is my exclusive digital home — velvet ropes, zero boundaries.",
-  creatorTagline: "British Creator · Entertainer · Fitness Lover",
+  instagramUrl: "https://instagram.com/sophieraiin",
+  twitterUrl: "https://x.com/sophieraiin",
+  tiktokUrl: "https://tiktok.com/@sophieraiin",
+  onlyfansUrl: "https://onlyfans.com/sophierain",
+  creatorBio: "Miami-born creator, top earner, fitness lover, and Pokémon Go enthusiast. This is my exclusive digital home — no algorithms, no limits.",
+  creatorTagline: "Miami Creator · Entertainer · Fitness Lover",
 };
 
 let cachedConfig: PlatformConfig | null = null;

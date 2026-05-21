@@ -1,20 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Layout } from "@/components/layout";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { usePlatformConfig } from "@/hooks/use-platform-config";
 import { useCreateRequest, useCreateTip } from "@workspace/api-client-react";
-import { ShoppingBag, Camera, Video, Wand2, Gift, Star, CheckCircle2, Heart, Sparkles, Crown, Lock, ChevronRight, ShieldCheck } from "lucide-react";
+import { ShoppingBag, Camera, Video, Wand2, Gift, Star, CheckCircle2, Heart, Sparkles, Crown, Lock, ChevronRight, ShieldCheck, MessageCircle, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
 
-import imgHero from "@assets/IMG_2411_1779144779567.jpeg";
-import imgChampagne from "@assets/IMG_2415_1779144779567.jpeg";
-import imgLeopard from "@assets/IMG_2409_1779144779567.jpeg";
-
-declare global {
-  interface Window { FlutterwaveCheckout: (c: any) => void; }
-}
+const HERO_IMG = "https://i.ibb.co/PGCnqyX5/IMG-5005.jpg";
 
 type Mode = "main" | "request" | "tip";
 
@@ -31,86 +25,37 @@ export default function Store() {
   const [tipAmount, setTipAmount] = useState("20");
   const [tipMessage, setTipMessage] = useState("");
   const [requestType, setRequestType] = useState("photo");
+  const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    const s = document.createElement("script");
-    s.src = "https://checkout.flutterwave.com/v3.js";
-    s.async = true;
-    document.body.appendChild(s);
-    return () => { document.body.removeChild(s); };
-  }, []);
-
-  const handleRequestPayment = () => {
+  const handleRequestViaDM = () => {
     if (!name || !email || !description) {
       toast({ title: "Fill all fields", variant: "destructive" });
       return;
     }
-    if (typeof window.FlutterwaveCheckout !== "function") return;
-    const txRef = `hb_req_${Date.now()}`;
-    window.FlutterwaveCheckout({
-      public_key: config.flutterwavePublicKey || "FLWPUBK_TEST-REPLACE",
-      tx_ref: txRef,
-      amount: config.requestPrice,
-      currency: config.currency,
-      payment_options: "card",
-      customer: { email, name },
-      customizations: { title: "Hannah Brooks", description: "Custom Content Request", logo: `${window.location.origin}${import.meta.env.BASE_URL}logo-hb.png` },
-      callback: (data: any) => {
-        if (data.status === "successful") {
-          createRequest.mutate(
-            { data: { fanName: name, fanEmail: email, requestType, description, amountPaid: config.requestPrice, txRef } },
-            {
-              onSuccess: () => {
-                toast({ title: "Request submitted! ✨", description: "Hannah will create your content soon." });
-                setMode("main"); setName(""); setEmail(""); setDescription("");
-              },
-              onError: () => {
-                toast({ title: "Submitted!", description: "Payment received. Expect your content soon." });
-                setMode("main");
-              }
-            }
-          );
-        }
-      },
-      onclose: () => {},
-    });
+    const txRef = `sr_req_dm_${Date.now()}`;
+    createRequest.mutate(
+      { data: { fanName: name, fanEmail: email, requestType, description, amountPaid: 0, txRef } },
+      {
+        onSuccess: () => { setSubmitted(true); },
+        onError: () => { setSubmitted(true); },
+      }
+    );
   };
 
-  const handleTipPayment = () => {
+  const handleTipViaDM = () => {
     const amt = parseFloat(tipAmount);
     if (!name || !email || isNaN(amt) || amt < config.tipMin) {
       toast({ title: `Minimum tip is $${config.tipMin}`, variant: "destructive" });
       return;
     }
-    if (typeof window.FlutterwaveCheckout !== "function") return;
-    const txRef = `hb_tip_${Date.now()}`;
-    window.FlutterwaveCheckout({
-      public_key: config.flutterwavePublicKey || "FLWPUBK_TEST-REPLACE",
-      tx_ref: txRef,
-      amount: amt,
-      currency: config.currency,
-      payment_options: "card",
-      customer: { email, name },
-      customizations: { title: "Hannah Brooks — Tip 💕", description: tipMessage || "A little gift for Hannah", logo: `${window.location.origin}${import.meta.env.BASE_URL}logo-hb.png` },
-      callback: (data: any) => {
-        if (data.status === "successful") {
-          createTip.mutate(
-            { data: { fanName: name, fanEmail: email, amount: amt, txRef, message: tipMessage } },
-            {
-              onSuccess: () => {
-                toast({ title: `$${amt} tip sent! 💕`, description: "Hannah truly appreciates you." });
-                setMode("main"); setName(""); setEmail(""); setTipMessage(""); setTipAmount("20");
-              },
-              onError: () => {
-                toast({ title: "Tip sent! 💕", description: "Thank you so much!" });
-                setMode("main");
-              }
-            }
-          );
-        }
-      },
-      onclose: () => {},
-    });
+    const txRef = `sr_tip_dm_${Date.now()}`;
+    createTip.mutate(
+      { data: { fanName: name, fanEmail: email, amount: amt, txRef, message: tipMessage } },
+      {
+        onSuccess: () => { setSubmitted(true); },
+        onError: () => { setSubmitted(true); },
+      }
+    );
   };
 
   const REQUEST_TYPES = [
@@ -120,6 +65,34 @@ export default function Store() {
   ];
 
   const TIP_PRESETS = [10, 20, 50, 100, 200];
+
+  if (submitted) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <div className="text-center max-w-md">
+            <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6" style={{background:"rgba(201,168,76,0.1)",border:"2px solid rgba(201,168,76,0.3)"}}>
+              <CheckCircle2 className="w-12 h-12 text-amber-400" />
+            </div>
+            <h1 className="text-4xl font-serif font-bold text-white mb-4">Received! 🔑</h1>
+            <p className="text-white/60 mb-4">Your request has been logged. Now DM Sophie to arrange payment and she'll get started.</p>
+            <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 mb-6 text-left">
+              <p className="text-amber-400 text-xs font-bold mb-2 uppercase tracking-wider">Next Step</p>
+              <p className="text-white/70 text-sm">Message Sophie and mention your request so she can confirm payment and get started.</p>
+            </div>
+            <Link href="/messages">
+              <button className="h-12 px-8 rounded-xl font-bold text-sm text-black mb-4" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>
+                <MessageCircle className="w-4 h-4 inline mr-2" />DM Sophie to Pay
+              </button>
+            </Link>
+            <br />
+            <button onClick={() => { setSubmitted(false); setMode("main"); setName(""); setEmail(""); setDescription(""); setTipMessage(""); setTipAmount("20"); }}
+              className="text-amber-400 text-sm hover:underline">Back to Store</button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (mode === "request") {
     return (
@@ -131,7 +104,7 @@ export default function Store() {
             </button>
             <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">Custom Request</p>
             <h1 className="text-4xl font-serif font-bold text-white mb-2">Just for You</h1>
-            <p className="text-white/50 mb-8">Tell Hannah exactly what you want — she'll make it happen.</p>
+            <p className="text-white/50 mb-8">Tell Sophie exactly what you want — she'll make it happen.</p>
 
             <div className="space-y-5 bg-zinc-900 rounded-2xl border border-white/5 p-6">
               <div>
@@ -166,20 +139,29 @@ export default function Store() {
                   className="min-h-[130px] bg-black border-white/10 text-white placeholder:text-white/20 focus-visible:ring-amber-400/50"
                 />
               </div>
+
+              {/* Payment notice */}
+              <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 flex gap-2 items-start">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-white/50 text-xs leading-relaxed">Payment via DM — Sophie will confirm personally after you message her.</p>
+              </div>
+
               <div className="pt-2 border-t border-white/5">
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-white/60">Custom {REQUEST_TYPES.find(r=>r.id===requestType)?.label}</span>
                   <span className="text-2xl font-bold" style={{color:"#c9a84c"}}>${config.requestPrice}</span>
                 </div>
                 <button
-                  onClick={handleRequestPayment}
-                  className="w-full h-14 rounded-xl font-black text-lg tracking-wider text-black hover:scale-[1.01] transition-transform"
+                  onClick={handleRequestViaDM}
+                  disabled={createRequest.isPending}
+                  className="w-full h-14 rounded-xl font-black text-lg tracking-wider text-black hover:scale-[1.01] transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
                   style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}
                 >
-                  Submit & Pay ${config.requestPrice}
+                  <MessageCircle className="w-5 h-5" />
+                  {createRequest.isPending ? "Submitting…" : `Submit Request — $${config.requestPrice}`}
                 </button>
                 <p className="text-center text-white/30 text-xs mt-3 flex items-center justify-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Delivered within 48–72 hours
+                  <ShieldCheck className="w-3 h-3" /> Delivered within 48–72 hours · Payment via DM
                 </p>
               </div>
             </div>
@@ -197,7 +179,7 @@ export default function Store() {
             <button onClick={() => setMode("main")} className="text-white/40 hover:text-white text-sm flex items-center gap-1 mb-8 transition-colors">← Back</button>
             <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">Send a Tip</p>
             <h1 className="text-4xl font-serif font-bold text-white mb-2">Show Some Love 💕</h1>
-            <p className="text-white/50 mb-8">Your generosity means the world to Hannah.</p>
+            <p className="text-white/50 mb-8">Your generosity means the world to Sophie.</p>
 
             <div className="space-y-5 bg-zinc-900 rounded-2xl border border-white/5 p-6">
               <div>
@@ -232,14 +214,22 @@ export default function Store() {
               </div>
               <div>
                 <label className="text-xs font-bold text-white/50 tracking-wider uppercase block mb-2">Message (optional)</label>
-                <Textarea value={tipMessage} onChange={e => setTipMessage(e.target.value)} placeholder="Leave Hannah a kind note…" className="bg-black border-white/10 text-white placeholder:text-white/20 focus-visible:ring-amber-400/50 min-h-[80px]" />
+                <Textarea value={tipMessage} onChange={e => setTipMessage(e.target.value)} placeholder="Leave Sophie a kind note…" className="bg-black border-white/10 text-white placeholder:text-white/20 focus-visible:ring-amber-400/50 min-h-[80px]" />
               </div>
+
+              <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 flex gap-2 items-start">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-white/50 text-xs leading-relaxed">Tips are arranged via DM — Sophie will confirm personally.</p>
+              </div>
+
               <button
-                onClick={handleTipPayment}
-                className="w-full h-14 rounded-xl font-black text-lg tracking-wider text-black hover:scale-[1.01] transition-transform"
+                onClick={handleTipViaDM}
+                disabled={createTip.isPending}
+                className="w-full h-14 rounded-xl font-black text-lg tracking-wider text-black hover:scale-[1.01] transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
                 style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}
               >
-                Send ${tipAmount || config.tipMin} Tip 💕
+                <Heart className="w-5 h-5" />
+                {createTip.isPending ? "Submitting…" : `Send $${tipAmount || config.tipMin} Tip via DM 💕`}
               </button>
             </div>
           </div>
@@ -248,12 +238,11 @@ export default function Store() {
     );
   }
 
-  // ─── MAIN STORE ───────────────────────────────────────────────────────────
   return (
     <Layout>
       {/* Hero */}
       <section className="relative py-32 overflow-hidden">
-        <img src={imgHero} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 object-top" />
+        <img src={HERO_IMG} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 object-top" crossOrigin="anonymous" />
         <div className="absolute inset-0 bg-gradient-to-b from-black via-black/80 to-black" />
         <div className="relative z-10 container mx-auto px-4 text-center max-w-3xl">
           <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-5 py-2 mb-6">
@@ -279,7 +268,7 @@ export default function Store() {
                 <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-amber-400 group-hover:translate-x-1 transition-all mt-1" />
               </div>
               <h2 className="text-2xl font-serif font-bold text-white mb-2">Custom Content</h2>
-              <p className="text-white/50 mb-5">Order a bespoke photo set or video made exactly to your specifications. Hannah will personally create it just for you.</p>
+              <p className="text-white/50 mb-5">Order a bespoke photo set or video made exactly to your specifications. Sophie will personally create it just for you.</p>
               <div className="flex items-center justify-between">
                 <div className="flex gap-2 flex-wrap">
                   {["Photo Set", "Video Clip", "Special Request"].map(t => (

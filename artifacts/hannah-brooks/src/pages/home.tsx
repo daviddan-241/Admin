@@ -8,28 +8,36 @@ import { useToast } from "@/hooks/use-toast";
 import { usePlatformConfig } from "@/hooks/use-platform-config";
 import { Star, Lock, Heart, Sparkles, MessageCircle, Video, ChevronRight, Instagram, Twitter } from "lucide-react";
 
-import imgHero from "@assets/IMG_2411_1779144779567.jpeg";
-import imgSportsBra from "@assets/IMG_2413_1779144779567.jpeg";
-import imgBikiniBunny from "@assets/IMG_2414_1779144779567.jpeg";
-import imgSportswear from "@assets/IMG_2412_1779144779567.jpeg";
-import imgChampagne from "@assets/IMG_2415_1779144779567.jpeg";
-import imgLeopard from "@assets/IMG_2409_1779144779567.jpeg";
-import imgTartan from "@assets/IMG_2408_1779144779567.jpeg";
-import imgUnionJack from "@assets/IMG_2410_1779144779567.jpeg";
-import imgTealLace from "@assets/IMG_2407_1779144779567.jpeg";
-import imgPurpleSports from "@assets/ff67c966-f09a-4535-929d-0faa2edcf33b_1779144779567.jpeg";
-import imgBlueTop from "@assets/86671805-56d9-497f-80f6-9e767d6d775f_1779144779567.jpeg";
-import imgGymshark from "@assets/IMG_2406_1779144779567.jpeg";
-import imgBlackSheer from "@assets/621a6159-c0fd-4251-aee5-12d5784ad850_1779144779567.jpeg";
-import imgGolfSkirt from "@assets/4213f549-3b25-453e-8b15-244f70907615_1779144779567.jpeg";
+const IMAGES = [
+  "https://i.ibb.co/PGCnqyX5/IMG-5005.jpg",
+  "https://i.ibb.co/vC3TShzm/IMG-5006.jpg",
+  "https://i.ibb.co/BHyHr4v0/IMG-5007.jpg",
+  "https://i.ibb.co/hFkvzFym/IMG-5008.jpg",
+  "https://i.ibb.co/WpWxr9WM/IMG-5009.jpg",
+  "https://i.ibb.co/hxBn0NXK/IMG-5010.jpg",
+  "https://i.ibb.co/WvbbPvxn/IMG-5011.jpg",
+  "https://i.ibb.co/8nhzv5hj/IMG-5012.jpg",
+  "https://i.ibb.co/LdymsBR4/IMG-5013.jpg",
+  "https://i.ibb.co/hRr72q4D/IMG-5014.jpg",
+  "https://i.ibb.co/gM7CT8VD/IMG-5015.jpg",
+  "https://i.ibb.co/fV9Yw83z/IMG-5016.jpg",
+  "https://i.ibb.co/6JBGW4P7/IMG-5017.jpg",
+  "https://i.ibb.co/5gp94kvZ/IMG-5018.jpg",
+  "https://i.ibb.co/MyMqXLGh/IMG-5019.jpg",
+  "https://i.ibb.co/s9yDDmhf/IMG-5020.jpg",
+  "https://i.ibb.co/BYn8yRX/IMG-5022.jpg",
+  "https://i.ibb.co/fGNhhPJw/IMG-5023.jpg",
+  "https://i.ibb.co/5Wg31yZk/IMG-5024.jpg",
+];
 
-const logoHB = `${import.meta.env.BASE_URL}logo-hb.png`;
-
-const vidKaraoke = `${import.meta.env.BASE_URL}videos/karaoke.mp4`;
-const vidHighFive = `${import.meta.env.BASE_URL}videos/highfive.mp4`;
-const vidDogs = `${import.meta.env.BASE_URL}videos/frenchies.mp4`;
-const vidLife1 = `${import.meta.env.BASE_URL}videos/lifestyle1.mov`;
-const vidLife2 = `${import.meta.env.BASE_URL}videos/lifestyle2.mov`;
+const BASE_URL = import.meta.env.BASE_URL;
+const VIDEOS = [
+  { src: `${BASE_URL}videos/sophie1.mp4`, label: "Lifestyle" },
+  { src: `${BASE_URL}videos/sophie2.mp4`, label: "Behind the Scenes" },
+  { src: `${BASE_URL}videos/sophie3.mp4`, label: "Day in My Life" },
+  { src: `${BASE_URL}videos/sophie4.mp4`, label: "Exclusive Clip" },
+  { src: `${BASE_URL}videos/sophie5.mp4`, label: "For My Fans" },
+];
 
 export default function Home() {
   const { toast } = useToast();
@@ -38,7 +46,7 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeGalleryIdx, setActiveGalleryIdx] = useState(0);
 
-  const galleryImages = [imgTealLace, imgBikiniBunny, imgLeopard, imgBlackSheer, imgSportsBra, imgUnionJack, imgTartan, imgGolfSkirt, imgChampagne, imgPurpleSports, imgBlueTop, imgGymshark, imgSportswear];
+  const galleryImages = IMAGES;
 
   useEffect(() => {
     const t = setInterval(() => setActiveGalleryIdx(i => (i + 1) % galleryImages.length), 3500);
@@ -59,10 +67,9 @@ export default function Home() {
     <Layout>
       {/* ─── HERO ────────────────────────────────────── */}
       <section className="relative w-full min-h-screen flex items-center justify-center overflow-hidden">
-        {/* animated background slideshow */}
         {galleryImages.map((img, i) => (
           <div key={i} className={`absolute inset-0 transition-opacity duration-1000 ${i === activeGalleryIdx ? "opacity-100" : "opacity-0"}`}>
-            <img src={img} alt="" className="w-full h-full object-cover object-top" />
+            <img src={img} alt="" className="w-full h-full object-cover object-top" crossOrigin="anonymous" />
           </div>
         ))}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30 z-10" />
@@ -70,10 +77,12 @@ export default function Home() {
 
         <div className="relative z-20 text-center px-4 max-w-4xl mx-auto">
           <div className="flex justify-center mb-8">
-            <img src={logoHB} alt="HB Logo" className="w-28 h-28 md:w-36 md:h-36 object-contain drop-shadow-2xl" />
+            <div className="w-28 h-28 md:w-36 md:h-36 rounded-full flex items-center justify-center font-serif font-black text-black text-4xl md:text-5xl drop-shadow-2xl" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>
+              SR
+            </div>
           </div>
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold font-serif mb-4 tracking-tighter text-white drop-shadow-2xl">
-            HANNAH<br /><span style={{color:"#c9a84c"}}>BROOKS</span>
+            SOPHIE<br /><span style={{color:"#c9a84c"}}>RAIN</span>
           </h1>
           <p className="text-lg md:text-xl text-white/80 font-light mb-3 tracking-[0.25em] uppercase">
             {config.creatorTagline}
@@ -98,7 +107,6 @@ export default function Home() {
           <p className="mt-6 text-white/40 text-sm tracking-wider">18+ · Adult content locked behind VIP</p>
         </div>
 
-        {/* scroll indicator */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 opacity-60">
           <div className="w-px h-12 bg-gradient-to-b from-transparent to-white/60" />
           <span className="text-white/60 text-xs tracking-[0.2em] uppercase">Scroll</span>
@@ -110,9 +118,9 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { num: "50K+", label: "Followers" },
-              { num: "2K+", label: "VIP Members" },
-              { num: "18+", label: "Verified Adults Only" },
+              { num: "14.2M+", label: "TikTok Followers" },
+              { num: "8.7M+", label: "Instagram Fans" },
+              { num: "#1", label: "OnlyFans Earner" },
               { num: "★ 4.9", label: "Member Rating" },
             ].map(s => (
               <div key={s.label}>
@@ -130,11 +138,11 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div className="relative">
               <div className="relative aspect-[3/4] overflow-hidden rounded-2xl">
-                <img src={imgGolfSkirt} alt="Hannah Brooks" className="object-cover w-full h-full hover:scale-105 transition-transform duration-1000" />
+                <img src={IMAGES[3]} alt="Sophie Rain" className="object-cover w-full h-full hover:scale-105 transition-transform duration-1000" crossOrigin="anonymous" />
                 <div className="absolute inset-0 ring-1 ring-inset ring-amber-400/20 rounded-2xl" />
               </div>
               <div className="absolute -bottom-6 -right-6 w-36 h-36 overflow-hidden rounded-2xl ring-4 ring-black shadow-2xl">
-                <img src={imgChampagne} alt="" className="object-cover w-full h-full" />
+                <img src={IMAGES[8]} alt="" className="object-cover w-full h-full" crossOrigin="anonymous" />
               </div>
               <div className="absolute top-8 -left-4 bg-black/80 backdrop-blur border border-amber-400/30 rounded-xl px-4 py-3 shadow-xl">
                 <p className="text-amber-400 text-xs font-bold tracking-wider uppercase mb-1">Exclusive Content</p>
@@ -143,7 +151,7 @@ export default function Home() {
             </div>
             <div className="space-y-7">
               <div>
-                <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">About Hannah</p>
+                <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">About Sophie</p>
                 <h2 className="text-4xl md:text-5xl font-serif font-bold text-white leading-tight">Behind<br />the Velvet<br />Ropes</h2>
               </div>
               <div className="h-px bg-gradient-to-r from-amber-400/60 to-transparent" />
@@ -151,7 +159,7 @@ export default function Home() {
                 {config.creatorBio}
               </p>
               <p className="text-white/50 leading-relaxed">
-                Whether I'm hitting the gym, singing my heart out at karaoke, or practicing my swing on the golf course — I live life with passion and unapologetic confidence. This space is where the algorithm can't reach me.
+                From Miami with love — I went from waitressing to becoming the #1 earner on OnlyFans. I built this platform for you: the realest fans who deserve something real in return.
               </p>
               <div className="flex flex-wrap gap-3">
                 {["Fitness", "Lifestyle", "Adult Content", "Custom Requests"].map(tag => (
@@ -177,9 +185,9 @@ export default function Home() {
             <p className="text-white/50 mt-4 max-w-xl mx-auto">A curated glimpse. The full uncensored collection is behind VIP.</p>
           </div>
           <div className="columns-2 md:columns-3 lg:columns-4 gap-3 md:gap-4 space-y-3 md:space-y-4">
-            {[imgTealLace, imgSportsBra, imgBikiniBunny, imgLeopard, imgBlackSheer, imgUnionJack, imgTartan, imgGymshark, imgChampagne, imgPurpleSports, imgBlueTop, imgSportswear].map((img, i) => (
+            {IMAGES.slice(0, 12).map((img, i) => (
               <div key={i} className="break-inside-avoid group relative overflow-hidden rounded-xl ring-1 ring-white/5">
-                <img src={img} alt="" className="w-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <img src={img} alt="" className="w-full object-cover group-hover:scale-105 transition-transform duration-700" crossOrigin="anonymous" />
                 {i % 4 === 0 && (
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
                     <span className="flex items-center gap-1 text-amber-400 text-xs font-bold tracking-wider"><Lock className="w-3 h-3" /> VIP</span>
@@ -213,16 +221,10 @@ export default function Home() {
             </Link>
           </div>
           <div className="flex overflow-x-auto pb-6 -mx-4 px-4 gap-5 snap-x" style={{scrollbarWidth:"none"}}>
-            {[
-              { src: vidKaraoke, label: "Karaoke Nights" },
-              { src: vidHighFive, label: "Story Time" },
-              { src: vidDogs, label: "Dog Mum Life" },
-              { src: vidLife1, label: "Lifestyle" },
-              { src: vidLife2, label: "Behind the Scenes" },
-            ].map((v, i) => (
+            {VIDEOS.map((v, i) => (
               <div key={i} className="shrink-0 w-[240px] md:w-[280px] snap-center group">
                 <div className="relative aspect-[9/16] rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
-                  <video src={v.src} className="w-full h-full object-cover" controls playsInline preload="metadata" poster={imgHero} />
+                  <video src={v.src} className="w-full h-full object-cover" controls playsInline preload="metadata" poster={IMAGES[i]} />
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 pointer-events-none">
                     <p className="text-white font-semibold text-sm">{v.label}</p>
                   </div>
@@ -238,12 +240,12 @@ export default function Home() {
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="text-center mb-16">
             <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">Services</p>
-            <h2 className="text-4xl font-serif font-bold text-white">Connect With Hannah</h2>
+            <h2 className="text-4xl font-serif font-bold text-white">Connect With Sophie</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { icon: <MessageCircle className="w-7 h-7" />, title: "Private DMs", desc: "Send a personal message. First few on me — then it's pay-to-chat.", href: "/messages", price: `from $${config.msgPrice}` },
-              { icon: <Video className="w-7 h-7" />, title: "1-on-1 Calls", desc: "FaceTime, Zoom, or WhatsApp video. Real time with Hannah.", href: "/calls", price: `from $${config.callWa5}` },
+              { icon: <MessageCircle className="w-7 h-7" />, title: "Private DMs", desc: "Send a personal message. First few on me — then pay via DM.", href: "/messages", price: `from $${config.msgPrice}` },
+              { icon: <Video className="w-7 h-7" />, title: "1-on-1 Calls", desc: "FaceTime, Zoom, or WhatsApp video. Real time with Sophie.", href: "/calls", price: `from $${config.callWa5}` },
               { icon: <Sparkles className="w-7 h-7" />, title: "Custom Content", desc: "Request bespoke photos or videos made just for you.", href: "/store", price: `from $${config.requestPrice}` },
             ].map(s => (
               <Link key={s.title} href={s.href}>
@@ -269,10 +271,10 @@ export default function Home() {
           <h2 className="text-3xl font-serif font-bold text-white mb-12">Find Me Everywhere</h2>
           <div className="flex flex-wrap justify-center gap-6 md:gap-10">
             {[
-              { label: "TikTok", handle: "@hannahbrooksxxx", href: config.tiktokUrl, icon: "TT", color: "#ff0050" },
-              { label: "X / Twitter", handle: "@hannahbrooksxx", href: config.twitterUrl, icon: "X", color: "#1da1f2" },
-              { label: "OnlyFans", handle: "hannahbrooks", href: config.onlyfansUrl, icon: "OF", color: "#00aff0" },
-              { label: "Instagram", handle: "@hannahbrooks", href: config.instagramUrl, icon: "IG", color: "#e1306c" },
+              { label: "TikTok", handle: "@sophieraiin", href: config.tiktokUrl, icon: "TT", color: "#ff0050" },
+              { label: "X / Twitter", handle: "@sophieraiin", href: config.twitterUrl, icon: "X", color: "#1da1f2" },
+              { label: "OnlyFans", handle: "sophierain", href: config.onlyfansUrl, icon: "OF", color: "#00aff0" },
+              { label: "Instagram", handle: "@sophieraiin", href: config.instagramUrl, icon: "IG", color: "#e1306c" },
             ].map(s => (
               <a key={s.label} href={s.href} target="_blank" rel="noreferrer" className="flex flex-col items-center group">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 text-white font-black text-lg group-hover:scale-110 transition-transform shadow-lg" style={{background:s.color+"22",border:`1px solid ${s.color}40`}}>
@@ -289,12 +291,12 @@ export default function Home() {
       {/* ─── CTA ─────────────────────────────────────── */}
       <section className="py-36 relative overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img src={imgHero} alt="" className="w-full h-full object-cover opacity-30" />
+          <img src={IMAGES[0]} alt="" className="w-full h-full object-cover opacity-30" crossOrigin="anonymous" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/60" />
         </div>
         <div className="relative z-10 container mx-auto px-4 text-center max-w-3xl">
           <div className="flex justify-center mb-8">
-            <img src={logoHB} alt="HB" className="w-20 h-20 object-contain opacity-90" />
+            <div className="w-20 h-20 rounded-full flex items-center justify-center font-serif font-black text-black text-2xl opacity-90" style={{background:"linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)"}}>SR</div>
           </div>
           <h2 className="text-5xl md:text-7xl font-serif font-bold text-white mb-6 leading-tight">
             No Algorithms.<br />No Limits.<br />Just <span style={{color:"#c9a84c"}}>Us.</span>

@@ -125,7 +125,7 @@ function HannahAvatar({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
   return (
     <div className={`${s} rounded-full shrink-0 relative overflow-hidden shadow-lg`}
       style={{ background: "linear-gradient(135deg,#c9a84c,#f0d080,#a07830)" }}>
-      <div className="absolute inset-0 flex items-center justify-center font-serif font-bold text-black">HB</div>
+      <div className="absolute inset-0 flex items-center justify-center font-serif font-bold text-black">SR</div>
     </div>
   );
 }
@@ -154,7 +154,7 @@ function MessageBubble({ msg, fanName, fanAvatarUrl }: { msg: ChatMessage; fanNa
       <div className={`max-w-[75%] flex flex-col gap-0.5 ${isHannah ? "items-start" : "items-end"}`}>
         {isHannah && (
           <span className="text-[11px] ml-1 flex items-center gap-1" style={{ color: "#c9a84c" }}>
-            <Star className="w-3 h-3" /> Hannah Brooks
+            <Star className="w-3 h-3" /> Sophie Rain
           </span>
         )}
         <div className={`rounded-2xl overflow-hidden shadow-lg
@@ -264,13 +264,6 @@ export default function Messages() {
   const freeLeft = Math.max(0, FREE_LIMIT - freeUsed);
   const isFree = freeUsed < FREE_LIMIT;
 
-  useEffect(() => {
-    const s = document.createElement("script");
-    s.src = "https://checkout.flutterwave.com/v3.js";
-    s.async = true;
-    document.body.appendChild(s);
-    return () => { if (document.body.contains(s)) document.body.removeChild(s); };
-  }, []);
 
   const scrollToBottom = useCallback((smooth = true) => {
     const el = scrollRef.current;
@@ -309,7 +302,7 @@ export default function Messages() {
             const newMsgs = (data.messages ?? []).filter((m) => !existingIds.has(m.id));
             if (newMsgs.length === 0) return prev;
             const hasHannahReply = newMsgs.some((m) => m.senderType === "hannah");
-            if (hasHannahReply) toast({ title: "💫 Hannah replied!", description: "You have a new message." });
+            if (hasHannahReply) toast({ title: "💫 Sophie replied!", description: "You have a new message." });
             return [...prev, ...newMsgs];
           });
           if (data.freeUsed !== undefined) {
@@ -422,20 +415,9 @@ export default function Messages() {
   const handleSend = () => {
     if (!input.trim()) return;
     if (isFree) { doSend(); return; }
-    if (typeof (window as any).FlutterwaveCheckout !== "function") {
-      toast({ title: "Payment loading…", variant: "destructive" }); return;
-    }
-    const txRef = `hb_chat_${Date.now()}`;
-    (window as any).FlutterwaveCheckout({
-      public_key: "FLWPUBK_TEST-REPLACE-WITH-YOUR-KEY",
-      tx_ref: txRef,
-      amount: MSG_PRICE,
-      currency: "USD",
-      payment_options: "card,mobilemoney",
-      customer: { email: session?.fanEmail ?? "", name: session?.fanName ?? "" },
-      customizations: { title: "Hannah Brooks", description: "Private Message" },
-      callback: (data: any) => { if (data.status === "successful") doSend({ txRef, amountPaid: MSG_PRICE }); },
-      onclose: () => {},
+    toast({
+      title: "DM to arrange payment 💬",
+      description: `Free messages used. Send Sophie a DM to continue — she'll arrange payment personally ($${MSG_PRICE}/msg).`,
     });
   };
 
@@ -457,8 +439,8 @@ export default function Messages() {
               <HannahAvatar size="lg" />
               <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-400 border-2 border-[#060606] shadow-lg" />
             </div>
-            <h1 className="text-3xl font-serif font-bold text-white mb-1">Hannah Brooks</h1>
-            <p className="text-white/40 text-sm">British Creator · Online Now</p>
+            <h1 className="text-3xl font-serif font-bold text-white mb-1">Sophie Rain</h1>
+            <p className="text-white/40 text-sm">Miami Creator · Online Now</p>
             <div className="flex items-center gap-2 mt-3 rounded-full px-4 py-1.5 border"
               style={{ background: "rgba(201,168,76,0.08)", borderColor: "rgba(201,168,76,0.2)" }}>
               <Sparkles className="w-4 h-4" style={{ color: "#c9a84c" }} />
@@ -472,7 +454,7 @@ export default function Messages() {
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
               <div>
                 <h2 className="text-white font-semibold text-lg mb-1">Start your conversation</h2>
-                <p className="text-white/40 text-sm">Set up your profile — Hannah sees this when she replies.</p>
+                <p className="text-white/40 text-sm">Set up your profile — Sophie sees this when she replies.</p>
               </div>
 
               {/* Avatar upload */}
@@ -528,11 +510,11 @@ export default function Messages() {
           <HannahAvatar size="sm" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-white text-sm">Hannah Brooks</span>
+              <span className="font-semibold text-white text-sm">Sophie Rain</span>
               <div className="w-2 h-2 rounded-full bg-green-400" />
               <span className="text-[10px] text-green-400 font-medium">Online</span>
             </div>
-            <p className="text-[11px] text-white/30 truncate">Replies personally · British Creator</p>
+            <p className="text-[11px] text-white/30 truncate">Replies personally · Miami Creator</p>
           </div>
           {isFree ? (
             <div className="flex items-center gap-1.5 rounded-full px-3 py-1 shrink-0 border"
@@ -558,10 +540,10 @@ export default function Messages() {
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center pb-16">
               <HannahAvatar size="md" />
-              <h3 className="text-white font-semibold text-lg mt-5 mb-2">Chat with Hannah</h3>
-              <p className="text-white/30 text-sm max-w-xs">Say hi! Hannah reads every message personally and replies as soon as she can.</p>
+              <h3 className="text-white font-semibold text-lg mt-5 mb-2">Chat with Sophie</h3>
+              <p className="text-white/30 text-sm max-w-xs">Say hi! Sophie reads every message personally and replies as soon as she can.</p>
               <div className="mt-6 flex gap-2 flex-wrap justify-center">
-                {["👋 Hey Hannah!", "💗 Big fan!", "🔥 Love your content", "✨ You're amazing!"].map((q) => (
+                {["👋 Hey Sophie!", "💗 Big fan!", "🔥 Love your content", "✨ You're amazing!"].map((q) => (
                   <button key={q} onClick={() => setInput(q)}
                     className="text-xs rounded-full px-3 py-1.5 text-white/60 hover:text-white transition-all border border-white/10 hover:border-white/20">
                     {q}
@@ -623,7 +605,7 @@ export default function Messages() {
           {!isFree && (
             <div className="flex items-center gap-1.5 mb-2 text-xs text-white/30">
               <Lock className="w-3 h-3" />
-              <span>Free messages used · ${MSG_PRICE} per message via Flutterwave</span>
+              <span>Free messages used · DM Sophie to arrange payment (${MSG_PRICE}/msg)</span>
             </div>
           )}
           <div className="flex items-end gap-2">
@@ -644,7 +626,7 @@ export default function Messages() {
               style={{ background: "rgba(255,255,255,0.04)" }}>
               <textarea value={input} onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                placeholder="Message Hannah…" rows={1}
+                placeholder="Message Sophie…" rows={1}
                 className="w-full bg-transparent text-white text-sm px-4 py-3 resize-none placeholder:text-white/20 outline-none max-h-[120px]"
                 style={{ fieldSizing: "content" } as React.CSSProperties} />
             </div>

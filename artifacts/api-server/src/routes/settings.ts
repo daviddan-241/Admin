@@ -25,16 +25,16 @@ export const platformConfig = {
   callPrivate60: parseFloat(process.env.CALL_PRIVATE60 || "299.99"),
 
   // Profile
-  whatsappNumber: process.env.WHATSAPP_NUMBER || "447700000000",
-  instagramUrl: process.env.INSTAGRAM_URL || "https://instagram.com/hannahbrooks",
-  twitterUrl: process.env.TWITTER_URL || "https://x.com/hannahbrooksxx",
-  tiktokUrl: process.env.TIKTOK_URL || "https://tiktok.com/@hannahbrooksxxx",
-  onlyfansUrl: process.env.ONLYFANS_URL || "https://onlyfans.com/hannahbrooks",
-  creatorBio: process.env.CREATOR_BIO || "British creator, adult entertainer, fitness lover, and dog mum. This is my exclusive digital home — velvet ropes, zero boundaries.",
-  creatorTagline: process.env.CREATOR_TAGLINE || "British Creator · Entertainer · Fitness Lover",
+  whatsappNumber: process.env.WHATSAPP_NUMBER || "13055550000",
+  instagramUrl: process.env.INSTAGRAM_URL || "https://instagram.com/sophieraiin",
+  twitterUrl: process.env.TWITTER_URL || "https://x.com/sophieraiin",
+  tiktokUrl: process.env.TIKTOK_URL || "https://tiktok.com/@sophieraiin",
+  onlyfansUrl: process.env.ONLYFANS_URL || "https://onlyfans.com/sophieraiin",
+  creatorBio: process.env.CREATOR_BIO || "Miami-born creator, OnlyFans top earner, and your favourite girl on the internet. This is my exclusive digital home — no filters, no limits.",
+  creatorTagline: process.env.CREATOR_TAGLINE || "Miami Creator · Entertainer · OnlyFans Top Earner",
 
   // Admin
-  adminPassword: process.env.ADMIN_PASSWORD || "hannah2024!",
+  adminPassword: process.env.ADMIN_PASSWORD || "sophie2024!",
 
   // Social sync (mirrors socialRouter config)
   xBearerToken: process.env.X_BEARER_TOKEN || "",

@@ -107,7 +107,7 @@ function HannahAvatar({ size = "sm" }: { size?: "sm" | "md" }) {
   return (
     <div className={`${dim} rounded-full shrink-0 flex items-center justify-center font-serif font-bold text-black shadow-lg`}
       style={{ background: GOLD_GRAD }}>
-      HB
+      SR
     </div>
   );
 }
@@ -220,7 +220,7 @@ function ChatBubble({ msg, session }: { msg: ChatMessage; session: ChatSession }
       {!isHannah && <FanAvatar session={session} size="sm" />}
       <div className={`max-w-[72%] flex flex-col gap-0.5 ${isHannah ? "items-end" : "items-start"}`}>
         {!isHannah && <span className="text-[11px] text-white/30 ml-1">{session.fanName}</span>}
-        {isHannah && <span className="text-[11px] mr-1 font-semibold" style={{ color: GOLD }}>You (Hannah) ✨</span>}
+        {isHannah && <span className="text-[11px] mr-1 font-semibold" style={{ color: GOLD }}>You (Sophie) ✨</span>}
         <div className={`rounded-2xl overflow-hidden shadow-md ${isHannah ? "rounded-br-sm" : "rounded-bl-sm"}`}
           style={isHannah
             ? { background: GOLD_GRAD, color: "#000" }
@@ -444,7 +444,7 @@ export default function Admin() {
         fetchAll();
         if (notifEnabled && Notification.permission === "granted") {
           const icons: Record<string, string> = { message: "💬", call: "📹", request: "✨", tip: "💝" };
-          new Notification(`${icons[data.type] || "🔔"} Hannah Brooks`, { body: (data as Activity).detail, icon: "/favicon.ico" });
+          new Notification(`${icons[data.type] || "🔔"} Sophie Rain`, { body: (data as Activity).detail, icon: "/favicon.ico" });
         }
       } catch {}
     };
@@ -655,9 +655,9 @@ export default function Admin() {
         <div className="w-full max-w-[360px] relative z-10">
           <div className="text-center mb-10">
             <div className="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center font-serif font-bold text-3xl text-black shadow-2xl"
-              style={{ background: GOLD_GRAD, boxShadow: "0 8px 40px rgba(201,168,76,0.4)" }}>HB</div>
+              style={{ background: GOLD_GRAD, boxShadow: "0 8px 40px rgba(201,168,76,0.4)" }}>SR</div>
             <h1 className="text-3xl font-serif font-bold text-white">Creator Portal</h1>
-            <p className="text-white/25 mt-2 text-sm tracking-[0.2em] uppercase">Hannah Brooks · Private</p>
+            <p className="text-white/25 mt-2 text-sm tracking-[0.2em] uppercase">Sophie Rain · Private</p>
           </div>
           <div className="rounded-3xl p-7 space-y-4 backdrop-blur-xl"
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,168,76,0.15)" }}>
@@ -872,9 +872,9 @@ export default function Admin() {
         style={{ borderColor: "rgba(201,168,76,0.1)", background: "rgba(7,7,6,0.95)" }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full flex items-center justify-center font-serif font-bold text-black text-sm"
-            style={{ background: GOLD_GRAD }}>HB</div>
+            style={{ background: GOLD_GRAD }}>SR</div>
           <div>
-            <span className="font-serif font-bold text-base text-white">Hannah Brooks</span>
+            <span className="font-serif font-bold text-base text-white">Sophie Rain</span>
             <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full border"
               style={{ color: GOLD, borderColor: "rgba(201,168,76,0.3)", background: "rgba(201,168,76,0.08)" }}>
               Creator Portal
@@ -1463,12 +1463,12 @@ export default function Admin() {
                   <h3 className="font-semibold text-white">Account Handles</h3>
                   <div>
                     <label className="text-xs text-white/30 mb-1.5 block">X / Twitter handle</label>
-                    <Input placeholder="@hannahbrooksxx" value={xHandleInput} onChange={(e) => setXHandleInput(e.target.value)}
+                    <Input placeholder="@sophieraiin" value={xHandleInput} onChange={(e) => setXHandleInput(e.target.value)}
                       className="bg-black/50 border-white/10 text-white rounded-xl placeholder:text-white/20" />
                   </div>
                   <div>
                     <label className="text-xs text-white/30 mb-1.5 block">TikTok handle</label>
-                    <Input placeholder="@hannahbrooksxxx" value={tiktokHandleInput} onChange={(e) => setTiktokHandleInput(e.target.value)}
+                    <Input placeholder="@sophieraiin" value={tiktokHandleInput} onChange={(e) => setTiktokHandleInput(e.target.value)}
                       className="bg-black/50 border-white/10 text-white rounded-xl placeholder:text-white/20" />
                   </div>
                   <div>
@@ -2140,8 +2140,8 @@ export default function Admin() {
             {/* ─── PERSONAS ─────────────────────────────────────────── */}
             {tab === "personas" && (() => {
               const DEMO_PERSONAS = [
-                { id: "1", name: "Hannah (Main)", desc: "Primary persona — luxury British creator", status: "active" as const, voice: "hannah-v3.pth", face: "hannah-face-v2.onnx", personality: "Warm, flirty, British accent. Loves fans. Calls everyone 'darling'. Teases but never over-promises. Premium creator energy.", mode: "autonomous" as const, msgs: 1247, acc: 96 },
-                { id: "2", name: "Hannah (Business)", desc: "Professional tone for brand deals", status: "idle" as const, voice: "hannah-v3.pth", face: "hannah-face-v2.onnx", personality: "Professional, confident, concise. Uses formal language for brand deals and business inquiries. No flirting.", mode: "approval" as const, msgs: 89, acc: 94 },
+                { id: "1", name: "Sophie (Main)", desc: "Primary persona — Miami top creator", status: "active" as const, voice: "sophie-v3.pth", face: "sophie-face-v2.onnx", personality: "Warm, flirty, Miami energy. Loves fans. Teases but never over-promises. Premium creator energy.", mode: "autonomous" as const, msgs: 1247, acc: 96 },
+                { id: "2", name: "Sophie (Business)", desc: "Professional tone for brand deals", status: "idle" as const, voice: "sophie-v3.pth", face: "sophie-face-v2.onnx", personality: "Professional, confident, concise. Uses formal language for brand deals and business inquiries. No flirting.", mode: "approval" as const, msgs: 89, acc: 94 },
                 { id: "3", name: "Aria (Alt)", desc: "Alternative persona for separate brand", status: "idle" as const, voice: "aria-v1.pth", face: "aria-face-v1.onnx", personality: "Mysterious, artistic, European accent. Fashion-forward. Intellectual discussions.", mode: "off" as const, msgs: 234, acc: 91 },
               ];
               const [selectedPersona, setSelectedPersona] = React.useState(DEMO_PERSONAS[0]);
@@ -2402,7 +2402,7 @@ export default function Admin() {
                         <div className="space-y-4">
                           <div>
                             <label className="text-xs text-white/40 mb-2 block uppercase tracking-widest">Persona Name</label>
-                            <Input placeholder="e.g. Hannah (Main)" className="bg-black border-white/10 text-white rounded-xl placeholder:text-white/20" />
+                            <Input placeholder="e.g. Sophie (Main)" className="bg-black border-white/10 text-white rounded-xl placeholder:text-white/20" />
                           </div>
                           <div>
                             <label className="text-xs text-white/40 mb-2 block uppercase tracking-widest">LLM Model</label>

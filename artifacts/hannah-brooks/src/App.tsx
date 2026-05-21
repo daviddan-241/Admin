@@ -13,7 +13,6 @@ import Feed from "@/pages/feed";
 import Admin from "@/pages/admin";
 import Profile from "@/pages/profile";
 import Studio from "@/pages/studio";
-import AppSwitcher from "@/components/AppSwitcher";
 
 const queryClient = new QueryClient();
 
@@ -43,7 +42,7 @@ function Router() {
 
 function App() {
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem("hb_theme");
+    const saved = localStorage.getItem("sr_theme");
     return (saved === "light" || saved === "dark") ? saved : "dark";
   });
 
@@ -51,7 +50,7 @@ function App() {
     const root = document.documentElement;
     root.classList.remove("dark", "light");
     root.classList.add(theme);
-    localStorage.setItem("hb_theme", theme);
+    localStorage.setItem("sr_theme", theme);
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
@@ -63,7 +62,6 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
-          <AppSwitcher />
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>

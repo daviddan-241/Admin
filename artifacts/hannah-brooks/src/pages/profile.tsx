@@ -10,6 +10,15 @@ import {
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
 
+const IMAGES = [
+  "https://i.ibb.co/PGCnqyX5/IMG-5005.jpg",
+  "https://i.ibb.co/vC3TShzm/IMG-5006.jpg",
+  "https://i.ibb.co/BHyHr4v0/IMG-5007.jpg",
+  "https://i.ibb.co/hFkvzFym/IMG-5008.jpg",
+  "https://i.ibb.co/WpWxr9WM/IMG-5009.jpg",
+  "https://i.ibb.co/hxBn0NXK/IMG-5010.jpg",
+];
+
 type Stats = {
   totalMessages?: number;
   totalPosts?: number;
@@ -30,7 +39,7 @@ type Post = {
 const GOLD = "#c9a84c";
 const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#a07830)";
 
-function HannahAvatarLarge() {
+function SophieAvatarLarge() {
   return (
     <div
       className="relative rounded-full shadow-2xl overflow-hidden"
@@ -40,21 +49,24 @@ function HannahAvatarLarge() {
         boxShadow: `0 0 60px rgba(201,168,76,0.4), 0 0 120px rgba(201,168,76,0.15)`,
       }}
     >
-      <div className="absolute inset-0 flex items-center justify-center font-serif font-bold text-black text-4xl">
-        HB
-      </div>
+      <img
+        src={IMAGES[0]}
+        alt="Sophie Rain"
+        className="w-full h-full object-cover object-top"
+        crossOrigin="anonymous"
+      />
     </div>
   );
 }
 
 const socialLinks = [
-  { label: "Instagram", icon: Instagram, href: "https://instagram.com/hannahbrooks", color: "#e1306c" },
-  { label: "X / Twitter", icon: Twitter, href: "https://x.com/hannahbrooks", color: "#1da1f2" },
-  { label: "TikTok", icon: Music2, href: "https://tiktok.com/@hannahbrooks", color: "#ffffff" },
+  { label: "Instagram", icon: Instagram, href: "https://instagram.com/sophieraiin", color: "#e1306c" },
+  { label: "X / Twitter", icon: Twitter, href: "https://x.com/sophieraiin", color: "#1da1f2" },
+  { label: "TikTok", icon: Music2, href: "https://tiktok.com/@sophieraiin", color: "#ffffff" },
 ];
 
 const highlights = [
-  "British creator based in London 🇬🇧",
+  "Miami-born creator 🌴",
   "Fitness, lifestyle & exclusive content",
   "Personal video calls & custom content",
   "VIP Members get everything 💕",
@@ -98,26 +110,22 @@ export default function Profile() {
 
         {/* ── Hero ────────────────────────────────────────────────── */}
         <div className="relative pt-16 pb-10 flex flex-col items-center px-4 text-center">
-          {/* Gold shimmer top border */}
           <div className="absolute top-0 left-0 right-0 h-px" style={{ background: GOLD_GRAD }} />
 
-          {/* Online badge */}
           <div className="flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border text-xs font-semibold"
             style={{ background: "rgba(74,222,128,0.08)", borderColor: "rgba(74,222,128,0.25)", color: "#4ade80" }}>
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             Online Now
           </div>
 
-          <HannahAvatarLarge />
+          <SophieAvatarLarge />
 
-          {/* Verified badge */}
           <div className="mt-4 flex items-center gap-2">
-            <h1 className="text-4xl font-serif font-bold text-white">Hannah Brooks</h1>
+            <h1 className="text-4xl font-serif font-bold text-white">Sophie Rain</h1>
             <CheckCircle2 className="w-6 h-6 shrink-0" style={{ color: GOLD }} />
           </div>
-          <p className="mt-1 text-white/40 text-sm tracking-widest uppercase">British Creator · Entertainer · Fitness</p>
+          <p className="mt-1 text-white/40 text-sm tracking-widest uppercase">Miami Creator · Entertainer · Fitness</p>
 
-          {/* Social links */}
           <div className="flex items-center gap-3 mt-5">
             {socialLinks.map(({ label, icon: Icon, href, color }) => (
               <a key={label} href={href} target="_blank" rel="noreferrer"
@@ -127,14 +135,13 @@ export default function Profile() {
                 <Icon className="w-4 h-4" style={{ color }} />
               </a>
             ))}
-            <a href="https://hannahbrooks.co.uk" target="_blank" rel="noreferrer"
-              className="w-10 h-10 rounded-full flex items-center justify-center border border-white/10 hover:border-white/30 transition-all hover:scale-110"
-              style={{ background: "rgba(255,255,255,0.04)" }}>
-              <Globe className="w-4 h-4 text-white/50" />
+            <a href="https://onlyfans.com/sophierain" target="_blank" rel="noreferrer"
+              className="w-10 h-10 rounded-full flex items-center justify-center border border-[#00AFF0]/30 hover:border-[#00AFF0]/60 transition-all hover:scale-110"
+              style={{ background: "rgba(0,175,240,0.05)" }}>
+              <span className="text-[#00AFF0] text-xs font-black">OF</span>
             </a>
           </div>
 
-          {/* Quick bio */}
           <div className="mt-7 max-w-md space-y-2">
             {highlights.map(h => (
               <p key={h} className="text-white/60 text-sm flex items-center justify-center gap-2">
@@ -148,10 +155,10 @@ export default function Profile() {
         <div className="max-w-2xl mx-auto px-4 pb-10">
           <div className="grid grid-cols-4 gap-3">
             {[
-              { label: "Fans", value: stats.totalMessages ? `${Math.max(1847, (stats.totalMessages ?? 0) * 3).toLocaleString()}+` : "1,847+" },
+              { label: "Fans", value: "14.2M+" },
               { label: "Posts", value: stats.totalPosts ?? 0 },
               { label: "Calls", value: stats.totalCalls ?? 0 },
-              { label: "Happy Fans", value: "98%" },
+              { label: "Happy Fans", value: "99%" },
             ].map(({ label, value }) => (
               <div key={label} className="rounded-2xl p-4 text-center border"
                 style={{ background: "rgba(201,168,76,0.04)", borderColor: "rgba(201,168,76,0.12)" }}>
@@ -231,38 +238,30 @@ export default function Profile() {
           )}
         </div>
 
-        {/* ── VIP / Adult Section ─────────────────────────────────── */}
+        {/* ── Private / VIP Section ───────────────────────────────── */}
         <div className="max-w-2xl mx-auto px-4 pb-16">
           <div className="rounded-3xl overflow-hidden border" style={{ borderColor: "rgba(201,168,76,0.2)" }}>
-            {/* Header */}
             <div className="px-6 pt-7 pb-5"
               style={{ background: "linear-gradient(135deg,rgba(201,168,76,0.12) 0%,rgba(160,120,48,0.06) 100%)" }}>
               <div className="flex items-center gap-3 mb-2">
                 <Crown className="w-6 h-6" style={{ color: GOLD }} />
-                <h2 className="text-white font-serif font-bold text-xl">VIP Members Area</h2>
+                <h2 className="text-white font-serif font-bold text-xl">Private Members Area</h2>
               </div>
               <p className="text-white/50 text-sm">Exclusive content only available to VIP members. Adults only 18+.</p>
             </div>
 
-            {/* Blurred VIP post previews */}
-            {vipPosts.length > 0 && (
-              <div className="grid grid-cols-3 gap-1 px-1 pb-1 bg-black/40">
-                {vipPosts.map(post => (
-                  <div key={post.id} className="relative aspect-square overflow-hidden">
-                    {post.imageUrl ? (
-                      <img src={post.imageUrl} alt="" className="w-full h-full object-cover scale-110 blur-[10px]" />
-                    ) : (
-                      <div className="w-full h-full" style={{ background: "rgba(201,168,76,0.05)" }} />
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Lock className="w-5 h-5" style={{ color: GOLD }} />
-                    </div>
+            {/* Preview of blurred VIP content using Sophie's photos */}
+            <div className="grid grid-cols-3 gap-1 px-1 pb-1 bg-black/40">
+              {IMAGES.slice(0, 6).map((img, i) => (
+                <div key={i} className="relative aspect-square overflow-hidden">
+                  <img src={img} alt="" className="w-full h-full object-cover scale-110 blur-[10px]" crossOrigin="anonymous" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Lock className="w-5 h-5" style={{ color: GOLD }} />
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
 
-            {/* Perks + CTA */}
             <div className="px-6 py-6" style={{ background: "rgba(10,8,0,0.8)" }}>
               <div className="grid grid-cols-2 gap-2 mb-6">
                 {vipPerks.map(perk => (
@@ -274,13 +273,13 @@ export default function Profile() {
               </div>
 
               <Link href="/members">
-                <button className="w-full h-13 rounded-2xl font-bold text-black tracking-wide transition-all hover:brightness-110 active:scale-95 flex items-center justify-center gap-2"
+                <button className="w-full h-13 rounded-2xl font-bold text-black tracking-wide transition-all hover:brightness-110 active:scale-95 flex items-center justify-center gap-2 py-3"
                   style={{ background: GOLD_GRAD, boxShadow: `0 8px 32px rgba(201,168,76,0.35)` }}>
                   <Crown className="w-5 h-5" />
-                  Unlock VIP Access
+                  Unlock Private Access
                 </button>
               </Link>
-              <p className="text-center text-white/20 text-xs mt-3">Monthly · Quarterly · Lifetime options available</p>
+              <p className="text-center text-white/20 text-xs mt-3">Monthly · Quarterly · Lifetime options — DM to subscribe</p>
             </div>
           </div>
         </div>
@@ -291,19 +290,19 @@ export default function Profile() {
             style={{ background: "rgba(255,255,255,0.02)" }}>
             <h2 className="text-white font-serif font-bold text-xl mb-4 flex items-center gap-2">
               <Sparkles className="w-5 h-5" style={{ color: GOLD }} />
-              About Hannah
+              About Sophie
             </h2>
             <div className="space-y-3 text-white/50 text-sm leading-relaxed">
-              <p>Hey gorgeous! I'm Hannah, a British creator based in London. I share my life, fitness journey, and exclusive content with my amazing fans from around the world 💕</p>
+              <p>Hey! I'm Sophie Rain, born and raised in Miami, Florida. I went from working a normal waitressing job to becoming the #1 earner on OnlyFans — and I built this platform for the real ones 💕</p>
               <p>I personally read and reply to every single message. My fans are everything to me — this platform is our own special world, no algorithms or restrictions.</p>
               <p className="flex items-center gap-2">
                 <Heart className="w-4 h-4 shrink-0" style={{ color: GOLD }} />
-                <span>I love connecting personally with each of you. Dm me anytime darling!</span>
+                <span>DM me anytime — I'm actually here and I love connecting with each of you!</span>
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2 mt-5">
-              {["🇬🇧 British", "💪 Fitness", "📸 Creator", "✈️ Traveller", "🎵 Music lover", "🌙 Night owl"].map(t => (
+              {["🌴 Miami", "💪 Fitness", "📸 Creator", "🎮 Pokémon Go", "🎵 Music lover", "✝️ Christian"].map(t => (
                 <span key={t} className="text-xs px-3 py-1 rounded-full border text-white/40"
                   style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
                   {t}
@@ -314,7 +313,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* ── Lightbox ─────────────────────────────────────────────── */}
       {lightbox && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
           onClick={() => setLightbox(null)}>
@@ -329,10 +327,6 @@ export default function Profile() {
           </div>
         </div>
       )}
-
-      <style>{`
-        .h-13 { height: 3.25rem; }
-      `}</style>
     </Layout>
   );
 }
