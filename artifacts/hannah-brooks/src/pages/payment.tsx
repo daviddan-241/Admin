@@ -12,7 +12,7 @@ import { Link, useSearch } from "wouter";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
-const SOPHIE_AVATAR = "/sophie-chat-avatar.png";
+const SOPHIE_AVATAR = "/logo-hb.png";
 
 type Step = "landing" | "support" | "upload" | "success";
 
