@@ -19,7 +19,7 @@ function HannahAvatar({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
   const s = { sm: "w-10 h-10", md: "w-14 h-14", lg: "w-20 h-20" }[size];
   return (
     <div className={`${s} rounded-full shrink-0 overflow-hidden border-2 border-amber-400/30 shadow-lg shadow-amber-400/10`}>
-      <img src={LOGO} alt="Hannah" className="w-full h-full object-cover"
+      <img src={LOGO} alt="Sophie" className="w-full h-full object-cover"
         onError={e => {
           const t = e.target as HTMLImageElement;
           t.style.display = "none";
@@ -111,7 +111,7 @@ export default function Store() {
       amount: amt,
       name: name.trim(),
       email: email.trim(),
-      description: tipMessage.trim() ? `Tip: ${tipMessage.trim()}` : "Tip for Hannah",
+      description: tipMessage.trim() ? `Tip: ${tipMessage.trim()}` : "Tip for Sophie",
       txRef,
       fallbackUrl: `/payment?for=tip&amount=${amt}`,
       onSuccess: async (data) => {
@@ -153,14 +153,14 @@ export default function Store() {
             </h1>
             <p className="text-white/50 mb-6">
               {successMode === "tip"
-                ? "Your tip has been sent to Hannah. She'll see it and reply personally — she genuinely appreciates every single one."
-                : "Your request is confirmed and paid. Hannah will start working on it and deliver within 48–72 hours."}
+                ? "Your tip has been sent to Sophie. She'll see it and reply personally — she genuinely appreciates every single one."
+                : "Your request is confirmed and paid. Sophie will start working on it and deliver within 48–72 hours."}
             </p>
             <div className="flex flex-col gap-3">
               <Link href="/messages">
                 <button className="w-full h-12 rounded-xl font-bold text-sm text-black flex items-center justify-center gap-2"
                   style={{ background: "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)" }}>
-                  Message Hannah
+                  Message Sophie
                 </button>
               </Link>
               <button onClick={resetForms} className="text-white/30 text-sm hover:text-white/60 transition-colors">
@@ -190,7 +190,7 @@ export default function Store() {
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-400 border-2 border-black" />
               </div>
               <h1 className="text-3xl font-serif font-bold text-white mb-1">Custom Content</h1>
-              <p className="text-white/40 text-sm">Tell Hannah exactly what you want — she'll make it happen.</p>
+              <p className="text-white/40 text-sm">Tell Sophie exactly what you want — she'll make it happen.</p>
               <div className="flex items-center gap-2 mt-3 rounded-full px-4 py-1.5 border"
                 style={{ background: "rgba(201,168,76,0.08)", borderColor: "rgba(201,168,76,0.2)" }}>
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -274,7 +274,7 @@ export default function Store() {
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-400 border-2 border-black" />
               </div>
               <h1 className="text-3xl font-serif font-bold text-white mb-1">Send a Tip 💕</h1>
-              <p className="text-white/40 text-sm">Your support means the world to Hannah.</p>
+              <p className="text-white/40 text-sm">Your support means the world to Sophie.</p>
             </div>
 
             <div className="rounded-3xl p-6 space-y-4"
@@ -310,7 +310,7 @@ export default function Store() {
                   className="pl-9 bg-black/50 border-white/10 text-white h-12 rounded-xl placeholder:text-white/20 focus-visible:ring-amber-400/40" />
               </div>
               <Textarea value={tipMessage} onChange={e => setTipMessage(e.target.value)}
-                placeholder="Leave Hannah a sweet note… (optional)"
+                placeholder="Leave Sophie a sweet note… (optional)"
                 className="bg-black/50 border-white/10 text-white rounded-xl placeholder:text-white/20 focus-visible:ring-amber-400/40 min-h-[80px] resize-none" />
 
               <button onClick={handlePayTip} disabled={paying}
@@ -322,7 +322,7 @@ export default function Store() {
                 }
               </button>
               <p className="text-center text-white/20 text-xs flex items-center justify-center gap-1">
-                <ShieldCheck className="w-3 h-3" /> Secure · Hannah sees every tip personally
+                <ShieldCheck className="w-3 h-3" /> Secure · Sophie sees every tip personally
               </p>
             </div>
           </div>
@@ -342,7 +342,7 @@ export default function Store() {
             <HannahAvatar size="lg" />
             <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-400 border-2 border-[#060606]" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-2">Hannah's Boutique</h1>
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-2">Sophie's Boutique</h1>
           <p className="text-white/40 max-w-md">Custom content, personal requests, and a tip jar — all just for you.</p>
         </div>
 
@@ -363,7 +363,7 @@ export default function Store() {
                     <h2 className="text-xl font-serif font-bold text-white">Custom Content</h2>
                     <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
                   </div>
-                  <p className="text-white/40 text-sm mb-3 leading-relaxed">Order a bespoke photo set or video made exactly to your specs. Hannah creates it personally just for you.</p>
+                  <p className="text-white/40 text-sm mb-3 leading-relaxed">Order a bespoke photo set or video made exactly to your specs. Sophie creates it personally just for you.</p>
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex gap-2">
                       {["Photo Set", "Video Clip", "Special"].map(t => (
@@ -390,7 +390,7 @@ export default function Store() {
                     <h2 className="text-xl font-serif font-bold text-white">Send a Tip</h2>
                     <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-pink-400 group-hover:translate-x-1 transition-all" />
                   </div>
-                  <p className="text-white/40 text-sm mb-3">Show some love — every tip is seen and felt by Hannah personally.</p>
+                  <p className="text-white/40 text-sm mb-3">Show some love — every tip is seen and felt by Sophie personally.</p>
                   <span className="text-pink-400 font-bold">From ${config.tipMin} 💕</span>
                 </div>
               </div>

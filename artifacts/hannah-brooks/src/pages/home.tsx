@@ -78,12 +78,12 @@ export default function Home() {
         <div className="relative z-20 text-center px-4 max-w-4xl mx-auto">
           <div className="flex justify-center mb-8">
             <div className="w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-amber-400/30 drop-shadow-2xl shadow-2xl shadow-amber-400/20">
-              <img src="/logo-hb.png" alt="Hannah Brooks" className="w-full h-full object-cover"
-                onError={e => { const t = e.target as HTMLImageElement; t.style.display="none"; t.parentElement!.style.background="linear-gradient(135deg,#c9a84c,#f0d080)"; t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:36px;font-family:serif">HB</div>'; }} />
+              <img src="/logo-sr.png" alt="Sophie Rain" className="w-full h-full object-cover"
+                onError={e => { const t = e.target as HTMLImageElement; t.style.display="none"; t.parentElement!.style.background="linear-gradient(135deg,#c9a84c,#f0d080)"; t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:36px;font-family:serif">SR</div>'; }} />
             </div>
           </div>
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold font-serif mb-4 tracking-tighter text-white drop-shadow-2xl">
-            HANNAH<br /><span style={{color:"#c9a84c"}}>BROOKS</span>
+            SOPHIE<br /><span style={{color:"#c9a84c"}}>RAIN</span>
           </h1>
           <p className="text-lg md:text-xl text-white/80 font-light mb-3 tracking-[0.25em] uppercase">
             {config.creatorTagline}
@@ -139,7 +139,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div className="relative">
               <div className="relative aspect-[3/4] overflow-hidden rounded-2xl">
-                <img src={IMAGES[3]} alt="Hannah Brooks" className="object-cover w-full h-full hover:scale-105 transition-transform duration-1000" crossOrigin="anonymous" />
+                <img src={IMAGES[3]} alt="Sophie Rain" className="object-cover w-full h-full hover:scale-105 transition-transform duration-1000" crossOrigin="anonymous" />
                 <div className="absolute inset-0 ring-1 ring-inset ring-amber-400/20 rounded-2xl" />
               </div>
               <div className="absolute -bottom-6 -right-6 w-36 h-36 overflow-hidden rounded-2xl ring-4 ring-black shadow-2xl">
@@ -152,7 +152,7 @@ export default function Home() {
             </div>
             <div className="space-y-7">
               <div>
-                <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">About Hannah</p>
+                <p className="text-amber-400 text-xs font-bold tracking-[0.3em] uppercase mb-3">About Sophie</p>
                 <h2 className="text-4xl md:text-5xl font-serif font-bold text-white leading-tight">Behind<br />the Velvet<br />Ropes</h2>
               </div>
               <div className="h-px bg-gradient-to-r from-amber-400/60 to-transparent" />
@@ -160,7 +160,7 @@ export default function Home() {
                 {config.creatorBio}
               </p>
               <p className="text-white/50 leading-relaxed">
-                I built this platform for my realest fans — no middlemen, no algorithms, just us. Everything here is personal, private, and made just for you.
+                From Miami with love — I went from waitressing to becoming the #1 earner on OnlyFans. I built this platform for you: the realest fans who deserve something real in return.
               </p>
               <div className="flex flex-wrap gap-3">
                 {["Fitness", "Lifestyle", "Adult Content", "Custom Requests"].map(tag => (

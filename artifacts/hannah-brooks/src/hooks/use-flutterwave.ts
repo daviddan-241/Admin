@@ -65,9 +65,9 @@ export function useFlutterwave() {
       payment_options: "card,ussd,banktransfer",
       customer: { email, name, phonenumber: phone },
       customizations: {
-        title: "Hannah Brooks",
+        title: "Sophie Rain",
         description,
-        logo: `${window.location.origin}/logo-hb.png`,
+        logo: `${window.location.origin}/logo-sr.png`,
       },
       callback: onSuccess,
       onclose: onClose ?? (() => {}),

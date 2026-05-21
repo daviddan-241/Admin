@@ -53,7 +53,7 @@ export function CookieBanner() {
                 style={{ background: "linear-gradient(90deg,#c9a84c,#f0d080)" }}>GDPR</span>
             </div>
             <p className="text-xs text-white/50 leading-relaxed">
-              Hannah Brooks uses cookies to improve your experience, personalise content, and analyse traffic.
+              Sophie Rain uses cookies to improve your experience, personalise content, and analyse traffic.
               You can choose which cookies you allow below.
             </p>
           </div>
@@ -128,7 +128,7 @@ export function CookieBanner() {
         <div className="border-t border-white/5 px-5 py-2.5 flex items-center gap-4">
           <a href="/privacy" className="text-[11px] text-white/25 hover:text-white/50 transition-colors">Privacy Policy</a>
           <a href="/terms" className="text-[11px] text-white/25 hover:text-white/50 transition-colors">Terms of Use</a>
-          <span className="text-[11px] text-white/15">· Hannah Brooks © {new Date().getFullYear()}</span>
+          <span className="text-[11px] text-white/15">· Sophie Rain © {new Date().getFullYear()}</span>
         </div>
       </div>
     </div>

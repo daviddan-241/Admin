@@ -5,12 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   Gift, Upload, CheckCircle2,
-  CreditCard, ShieldCheck, Lock, Sparkles, Heart, Camera, MessageCircle
+  CreditCard, ShieldCheck, Lock, Sparkles, Camera, MessageCircle
 } from "lucide-react";
 import { Link, useSearch } from "wouter";
 
 const BASE = import.meta.env.VITE_API_URL || "";
-const LOGO = "/logo-hb.png";
+const LOGO = "/logo-sr.png";
 
 type Step = "support" | "upload" | "success";
 
@@ -23,22 +23,22 @@ const CARD_TYPES = [
   { id: "other", label: "Other Gift Card", emoji: "🎁", hint: "Any denomination" },
 ];
 
-function HannahAvatar({ size = "sm" }: { size?: "sm" | "lg" }) {
+function SophieAvatar({ size = "sm" }: { size?: "sm" | "lg" }) {
   const s = size === "lg" ? "w-14 h-14" : "w-10 h-10";
   return (
     <div className={`${s} rounded-full overflow-hidden border-2 border-amber-400/30 shrink-0 shadow-lg shadow-amber-400/10`}>
-      <img src={LOGO} alt="Hannah" className="w-full h-full object-cover"
+      <img src={LOGO} alt="Sophie" className="w-full h-full object-cover"
         onError={e => {
           const t = e.target as HTMLImageElement;
           t.style.display = "none";
           t.parentElement!.style.background = "linear-gradient(135deg,#c9a84c,#f0d080)";
-          t.parentElement!.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:11px;font-family:serif">HB</div>';
+          t.parentElement!.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:11px;font-family:serif">SR</div>';
         }} />
     </div>
   );
 }
 
-function HannahBubble({ text, delay = 0 }: { text: string; delay?: number }) {
+function SophieBubble({ text, delay = 0 }: { text: string; delay?: number }) {
   const [visible, setVisible] = useState(delay === 0);
   React.useEffect(() => {
     if (delay > 0) {
@@ -49,7 +49,7 @@ function HannahBubble({ text, delay = 0 }: { text: string; delay?: number }) {
   if (!visible) return <div className="h-8" />;
   return (
     <div className="flex items-end gap-2.5 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <HannahAvatar size="sm" />
+      <SophieAvatar size="sm" />
       <div className="max-w-[78%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm font-medium shadow-lg"
         style={{ background: "linear-gradient(135deg,#c9a84c,#f0d080)", color: "#1a0e00" }}>
         {text}
@@ -66,7 +66,6 @@ export default function Payment() {
   const desc = params.get("desc") || "";
   const amount = params.get("amount") || "";
 
-  const giftForPayment = ["call", "request", "tip", "subscription", "general"].includes(purpose);
   const [step, setStep] = useState<Step>("support");
   const [cardType, setCardType] = useState("");
   const [cardAmount, setCardAmount] = useState(amount || "");
@@ -134,16 +133,16 @@ export default function Payment() {
               </div>
             </div>
             <h1 className="text-4xl font-serif font-bold text-white mb-3">Gift Card Received! 🎉</h1>
-            <p className="text-white/50 mb-6">Hannah will personally review your card and unlock your access — usually within 2–4 hours. Check your email for confirmation.</p>
+            <p className="text-white/50 mb-6">Sophie will personally review your card and unlock your access — usually within 2–4 hours. Check your email for confirmation.</p>
 
             <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-5 mb-6 text-left">
               <p className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-3">What Happens Next</p>
               <div className="space-y-2.5">
                 {[
-                  "Hannah reviews your gift card photos personally",
+                  "Sophie reviews your gift card photos personally",
                   "She verifies the card and adds the amount",
                   `Your ${purposeLabel.replace("your ", "")} is unlocked ✨`,
-                  "You get a confirmation email from Hannah",
+                  "You get a confirmation email from Sophie",
                 ].map((s, i) => (
                   <div key={i} className="flex items-center gap-2.5">
                     <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-black shrink-0"
@@ -158,7 +157,7 @@ export default function Payment() {
               <Link href="/messages">
                 <button className="w-full h-12 rounded-xl font-bold text-sm text-black flex items-center justify-center gap-2"
                   style={{ background: "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)" }}>
-                  <MessageCircle className="w-4 h-4" /> Message Hannah
+                  <MessageCircle className="w-4 h-4" /> Message Sophie
                 </button>
               </Link>
               <Link href="/" className="text-white/30 text-sm hover:text-white/60 transition-colors">
@@ -182,9 +181,9 @@ export default function Payment() {
             </button>
 
             <div className="flex items-center gap-3 mb-8">
-              <HannahAvatar size="lg" />
+              <SophieAvatar size="lg" />
               <div>
-                <p className="font-serif font-bold text-white text-lg">Send Hannah Your Gift Card</p>
+                <p className="font-serif font-bold text-white text-lg">Send Sophie Your Gift Card</p>
                 <p className="text-white/40 text-sm">She verifies every card personally, usually within 2–4 hours</p>
               </div>
             </div>
@@ -255,12 +254,12 @@ export default function Payment() {
                   ))}
                 </div>
                 <p className="text-white/20 text-xs mt-2 flex items-center gap-1">
-                  <Lock className="w-3 h-3" /> Photos seen only by Hannah · Deleted after verification
+                  <Lock className="w-3 h-3" /> Photos seen only by Sophie · Deleted after verification
                 </p>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-white/30 tracking-widest uppercase block mb-2">Note to Hannah (optional)</label>
+                <label className="text-xs font-bold text-white/30 tracking-widest uppercase block mb-2">Note to Sophie (optional)</label>
                 <Textarea value={note} onChange={e => setNote(e.target.value)}
                   placeholder="What is this for? (e.g. Zoom call, custom request, VIP membership...)"
                   className="bg-black/50 border-white/10 text-white rounded-xl placeholder:text-white/20 focus-visible:ring-amber-400/40 min-h-[70px] resize-none" />
@@ -268,15 +267,15 @@ export default function Payment() {
 
               <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 flex gap-2 items-center">
                 <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-                <p className="text-white/50 text-xs leading-relaxed">Hannah personally reviews and verifies every card. Access unlocked within 2–4 hours.</p>
+                <p className="text-white/50 text-xs leading-relaxed">Sophie personally reviews and verifies every card. Access unlocked within 2–4 hours.</p>
               </div>
 
               <button onClick={handleSubmit} disabled={submitting}
                 className="w-full h-14 rounded-2xl font-black text-lg text-black flex items-center justify-center gap-2 transition-all active:scale-[0.99] hover:scale-[1.01] disabled:opacity-60 shadow-xl shadow-amber-400/20"
                 style={{ background: "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)" }}>
                 {submitting
-                  ? <><span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Sending to Hannah…</>
-                  : <><Upload className="w-5 h-5" /> Send Gift Card to Hannah</>
+                  ? <><span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Sending to Sophie…</>
+                  : <><Upload className="w-5 h-5" /> Send Gift Card to Sophie</>
                 }
               </button>
             </div>
@@ -293,9 +292,9 @@ export default function Payment() {
         {/* Chat header */}
         <div className="sticky top-16 z-10 flex items-center gap-3 px-4 py-3 border-b"
           style={{ background: "rgba(10,8,0,0.95)", borderColor: "rgba(255,255,255,0.06)", backdropFilter: "blur(20px)" }}>
-          <HannahAvatar size="sm" />
+          <SophieAvatar size="sm" />
           <div className="flex-1">
-            <p className="font-semibold text-white text-sm leading-tight">Hannah Brooks</p>
+            <p className="font-semibold text-white text-sm leading-tight">Sophie Rain</p>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
               <p className="text-[11px] text-green-400">Online Now · Responds in minutes</p>
@@ -308,7 +307,7 @@ export default function Payment() {
           </div>
         </div>
 
-        {/* Context banner for call/request */}
+        {/* Context banner */}
         {(purpose === "call" || purpose === "request") && desc && (
           <div className="px-4 py-3 border-b text-center"
             style={{ background: "rgba(201,168,76,0.05)", borderColor: "rgba(201,168,76,0.15)" }}>
@@ -323,7 +322,7 @@ export default function Payment() {
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto px-4 py-6">
           {chatMessages.map((m, i) => (
-            <HannahBubble key={i} text={m} delay={i * 900} />
+            <SophieBubble key={i} text={m} delay={i * 900} />
           ))}
 
           <div className="mt-6 pt-5 border-t border-white/5 space-y-3">
@@ -331,10 +330,10 @@ export default function Payment() {
             <button onClick={() => setStep("upload")}
               className="w-full h-14 rounded-2xl font-black text-lg text-black flex items-center justify-center gap-3 shadow-xl shadow-amber-400/20 transition-all hover:scale-[1.01] active:scale-[0.99]"
               style={{ background: "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)" }}>
-              <Gift className="w-5 h-5" /> Send Gift Card to Hannah
+              <Gift className="w-5 h-5" /> Send Gift Card to Sophie
             </button>
             <p className="text-center text-white/20 text-xs flex items-center justify-center gap-1">
-              <Lock className="w-3 h-3" /> 100% private · Verified personally by Hannah
+              <Lock className="w-3 h-3" /> 100% private · Verified personally by Sophie
             </p>
           </div>
         </div>

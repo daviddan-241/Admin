@@ -459,7 +459,7 @@ export default function Admin() {
         fetchAll();
         if (notifEnabled && Notification.permission === "granted") {
           const icons: Record<string, string> = { message: "💬", call: "📹", request: "✨", tip: "💝" };
-          new Notification(`${icons[data.type] || "🔔"} Hannah Brooks`, { body: (data as Activity).detail, icon: "/favicon.ico" });
+          new Notification(`${icons[data.type] || "🔔"} Sophie Rain`, { body: (data as Activity).detail, icon: "/favicon.ico" });
         }
       } catch {}
     };
@@ -714,10 +714,10 @@ export default function Admin() {
         <div className="w-full max-w-[360px] relative z-10">
           <div className="text-center mb-10">
             <div className="w-20 h-20 rounded-full mx-auto mb-6 overflow-hidden border-2 border-amber-400/30 shadow-2xl" style={{ boxShadow: "0 8px 40px rgba(201,168,76,0.3)" }}>
-              <img src={logoHB} alt="HB" className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; t.style.display="none"; t.parentElement!.style.background=GOLD_GRAD; t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:28px;font-family:serif">HB</div>'; }} />
+              <img src={logoHB} alt="SR" className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; t.style.display="none"; t.parentElement!.style.background=GOLD_GRAD; t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:28px;font-family:serif">SR</div>'; }} />
             </div>
             <h1 className="text-3xl font-serif font-bold text-white">Creator Portal</h1>
-            <p className="text-white/25 mt-2 text-sm tracking-[0.2em] uppercase">Hannah Brooks · Private</p>
+            <p className="text-white/25 mt-2 text-sm tracking-[0.2em] uppercase">Sophie Rain · Private</p>
           </div>
           <div className="rounded-3xl p-7 space-y-4 backdrop-blur-xl"
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,168,76,0.15)" }}>
@@ -933,10 +933,10 @@ export default function Admin() {
         style={{ borderColor: "rgba(201,168,76,0.1)", background: "rgba(7,7,6,0.95)" }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-400/30 shrink-0">
-            <img src={logoHB} alt="HB" className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; t.style.display="none"; t.parentElement!.style.background=GOLD_GRAD; t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:10px;font-family:serif">HB</div>'; }} />
+            <img src={logoHB} alt="SR" className="w-full h-full object-cover" onError={e => { const t = e.target as HTMLImageElement; t.style.display="none"; t.parentElement!.style.background=GOLD_GRAD; t.parentElement!.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#000;font-size:10px;font-family:serif">SR</div>'; }} />
           </div>
           <div>
-            <span className="font-serif font-bold text-base text-white">Hannah Brooks</span>
+            <span className="font-serif font-bold text-base text-white">Sophie Rain</span>
             <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full border"
               style={{ color: GOLD, borderColor: "rgba(201,168,76,0.3)", background: "rgba(201,168,76,0.08)" }}>
               Creator Portal

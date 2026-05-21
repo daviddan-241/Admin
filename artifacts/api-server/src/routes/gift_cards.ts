@@ -45,7 +45,7 @@ router.post("/gift-cards", async (req, res): Promise<void> => {
       status: "pending",
     }).returning();
 
-    res.status(201).json({ success: true, id: row.id, message: "Gift card received! Sophie will verify and unlock your access within a few hours." });
+    res.status(201).json({ success: true, id: row.id, message: "Gift card received! Sophie Rain will verify and unlock your access within a few hours." });
   } catch (e: unknown) {
     res.status(500).json({ error: `Failed to save gift card: ${e instanceof Error ? e.message : String(e)}` });
   }

@@ -74,7 +74,7 @@ export default function AppSwitcher() {
         >
           {/* header */}
           <div className="px-4 pt-3.5 pb-2.5 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-            <p className="text-white font-bold text-sm">Hannah Brooks</p>
+            <p className="text-white font-bold text-sm">Sophie Rain</p>
             <p className="text-white/25 text-[11px]">Switch experience · all on port 5000</p>
           </div>
 

@@ -20,7 +20,7 @@ function HannahAvatar({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
   const s = { sm: "w-10 h-10", md: "w-14 h-14", lg: "w-20 h-20" }[size];
   return (
     <div className={`${s} rounded-full shrink-0 overflow-hidden border-2 border-amber-400/30 shadow-lg shadow-amber-400/10`}>
-      <img src={LOGO} alt="Hannah" className="w-full h-full object-cover"
+      <img src={LOGO} alt="Sophie" className="w-full h-full object-cover"
         onError={e => {
           const t = e.target as HTMLImageElement;
           t.style.display = "none";
@@ -104,7 +104,7 @@ export default function Calls() {
       name: name.trim(),
       email: email.trim(),
       phone: phone.trim(),
-      description: `${selected.label} · ${selected.mins} min call with Hannah`,
+      description: `${selected.label} · ${selected.mins} min call with Sophie`,
       txRef,
       fallbackUrl: `/payment?for=call&desc=${encodeURIComponent(selected.label + ' · ' + selected.mins + ' min call')}&amount=${selected.price}`,
       onSuccess: async (data) => {
@@ -146,7 +146,7 @@ export default function Calls() {
               </div>
             </div>
             <h1 className="text-4xl font-serif font-bold text-white mb-3">Call Booked! 🎉</h1>
-            <p className="text-white/50 mb-6">Your payment is confirmed. Hannah will reach out via email to confirm the exact time and send you the call link.</p>
+            <p className="text-white/50 mb-6">Your payment is confirmed. Sophie will reach out via email to confirm the exact time and send you the call link.</p>
 
             <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-5 mb-6 text-left space-y-3">
               <div className="flex items-center justify-between">
@@ -167,7 +167,7 @@ export default function Calls() {
               <Link href="/messages">
                 <button className="w-full h-12 rounded-xl font-bold text-sm text-black flex items-center justify-center gap-2"
                   style={{ background: "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)" }}>
-                  <MessageCircle className="w-4 h-4" /> Message Hannah
+                  <MessageCircle className="w-4 h-4" /> Message Sophie
                 </button>
               </Link>
               <button onClick={() => { setStep("select"); setName(""); setEmail(""); setPhone(""); setDate(""); setNotes(""); }}
@@ -192,7 +192,7 @@ export default function Calls() {
             <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-400 border-2 border-[#060606]" />
           </div>
           <h1 className="text-3xl font-serif font-bold text-white mb-1">Book a Call</h1>
-          <p className="text-white/40 text-sm mb-3">Real time with Hannah · No scripts, no filters</p>
+          <p className="text-white/40 text-sm mb-3">Real time with Sophie · No scripts, no filters</p>
           <div className="flex items-center gap-2 rounded-full px-4 py-1.5 border"
             style={{ background: "rgba(201,168,76,0.08)", borderColor: "rgba(201,168,76,0.2)" }}>
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -262,7 +262,7 @@ export default function Calls() {
               <HannahAvatar size="sm" />
               <div>
                 <p className="text-white text-sm font-semibold">Your Details</p>
-                <p className="text-white/30 text-xs">Hannah needs this to confirm your booking</p>
+                <p className="text-white/30 text-xs">Sophie needs this to confirm your booking</p>
               </div>
             </div>
 
@@ -302,7 +302,7 @@ export default function Calls() {
               <span className="text-white/60 text-sm">{selected.label} · {selected.mins} min</span>
               <span className="text-2xl font-black text-amber-400">${selected.price}</span>
             </div>
-            <p className="text-white/30 text-xs">{selected.badge} · Confirmed by Hannah within 2 hours</p>
+            <p className="text-white/30 text-xs">{selected.badge} · Confirmed by Sophie within 2 hours</p>
           </div>
 
           <button onClick={handlePay} disabled={paying}
