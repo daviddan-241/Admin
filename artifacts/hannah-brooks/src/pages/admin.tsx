@@ -1648,7 +1648,13 @@ export default function Admin() {
                 </GoldCard>
 
                 <GoldCard className="p-5 space-y-4">
-                  <h3 className="font-semibold text-white">X / TikTok Sync</h3>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h3 className="font-semibold text-white">X / TikTok Sync</h3>
+                    <span className="text-xs px-2 py-0.5 rounded-full text-green-300 bg-green-500/10 border border-green-500/20 font-medium">✓ Free — No API Key Needed</span>
+                  </div>
+                  <p className="text-xs text-white/40 leading-relaxed">
+                    Works for free via public RSS and open scraping. Enter your handles above and hit Sync — no paid API keys required.
+                  </p>
                   <div className="flex flex-wrap gap-3">
                     <button onClick={() => syncPlatform("x")} disabled={syncingX || syncingAll}
                       className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border border-sky-500/30 text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 disabled:opacity-40 transition-colors">
