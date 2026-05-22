@@ -317,6 +317,7 @@ export default function Admin() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [activity, setActivity] = useState<Activity[]>([]);
   const [notifEnabled, setNotifEnabled] = useState(false);
+  const [liveFlash, setLiveFlash] = useState(false);
   const [newPost, setNewPost] = useState({ imageUrl: "", caption: "", platform: "instagram", isPrivate: false });
   const [addingPost, setAddingPost] = useState(false);
   const [postMediaFile, setPostMediaFile] = useState<string | null>(null);
@@ -366,6 +367,7 @@ export default function Admin() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const esRef = useRef<EventSource | null>(null);
   const chatPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const liveFlashRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const h = { "x-admin-key": adminKey };
 
@@ -461,11 +463,39 @@ export default function Admin() {
       try {
         const data = JSON.parse(e.data) as (Activity & { type: string }) | { type: "connected" };
         if (data.type === "connected") return;
-        setActivity((prev) => [data as Activity, ...prev].slice(0, 50));
+        const ev = data as Activity;
+        setActivity((prev) => [ev, ...prev].slice(0, 50));
         fetchAll();
+
+        // ── Live flash pulse on header badge ──────────────────────────────
+        setLiveFlash(true);
+        if (liveFlashRef.current) clearTimeout(liveFlashRef.current);
+        liveFlashRef.current = setTimeout(() => setLiveFlash(false), 3500);
+
+        // ── In-app toast notification with tab navigation ─────────────────
+        const icons: Record<string, string> = { message: "💬", call: "📹", request: "✨", tip: "💝" };
+        const tabMap: Record<string, Tab> = { message: "chat", call: "calls", request: "requests", tip: "tips" };
+        const label = ev.type === "tip" && ev.amount > 0
+          ? `$${ev.amount} tip received!`
+          : ev.type === "message" ? "sent a message"
+          : ev.type === "call" ? "booked a call"
+          : ev.type === "request" ? "submitted a request"
+          : ev.detail;
+        toast({
+          title: `${icons[ev.type] || "🔔"} ${ev.fanName}`,
+          description: `${label}${ev.detail && ev.detail !== label ? ` · ${ev.detail.slice(0, 60)}` : ""}`,
+          action: (
+            <button
+              onClick={() => setTab(tabMap[ev.type] ?? "dashboard")}
+              className="shrink-0 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+              View
+            </button>
+          ) as React.ReactNode,
+        });
+
+        // ── Browser push notifications (if enabled) ───────────────────────
         if (notifEnabled && Notification.permission === "granted") {
-          const icons: Record<string, string> = { message: "💬", call: "📹", request: "✨", tip: "💝" };
-          new Notification(`${icons[data.type] || "🔔"} Sophie Rain`, { body: (data as Activity).detail, icon: "/favicon.ico" });
+          new Notification(`${icons[ev.type] || "🔔"} Sophie Rain`, { body: ev.detail, icon: "/favicon.ico" });
         }
       } catch {}
     };
@@ -1067,11 +1097,15 @@ export default function Admin() {
             const totalBadge = (chatSessions.reduce((a, s) => a + (s.unreadCount || 0), 0)) +
               calls.filter(c => c.status === "pending").length +
               requests.filter(r => r.status === "pending").length;
-            return totalBadge > 0 ? (
-              <button onClick={() => setTab("chat")} className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-black mr-1"
-                style={{ background: GOLD_GRAD, boxShadow: "0 0 14px rgba(201,168,76,0.5)" }}>
-                <Bell className="w-3.5 h-3.5" />
-                {totalBadge}
+            return (totalBadge > 0 || liveFlash) ? (
+              <button onClick={() => setTab("chat")} className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-black mr-1 transition-all"
+                style={{
+                  background: GOLD_GRAD,
+                  boxShadow: liveFlash ? "0 0 22px rgba(201,168,76,0.9), 0 0 40px rgba(201,168,76,0.4)" : "0 0 14px rgba(201,168,76,0.5)",
+                  transform: liveFlash ? "scale(1.08)" : "scale(1)",
+                }}>
+                <Bell className={`w-3.5 h-3.5 ${liveFlash ? "animate-bounce" : ""}`} />
+                {totalBadge > 0 ? totalBadge : "NEW"}
                 <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-ping" />
               </button>
             ) : null;
