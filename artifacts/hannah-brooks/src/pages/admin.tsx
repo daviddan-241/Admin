@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import {
   MessageSquare, Phone, Sparkles, Gift, ImagePlus, LayoutDashboard,
   Send, CheckCircle, Trash2, Bell, BellOff, Mic, Pause, Play,
@@ -485,12 +486,10 @@ export default function Admin() {
           title: `${icons[ev.type] || "🔔"} ${ev.fanName}`,
           description: `${label}${ev.detail && ev.detail !== label ? ` · ${ev.detail.slice(0, 60)}` : ""}`,
           action: (
-            <button
-              onClick={() => setTab(tabMap[ev.type] ?? "dashboard")}
-              className="shrink-0 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+            <ToastAction altText="View" onClick={() => setTab(tabMap[ev.type] ?? "dashboard")}>
               View
-            </button>
-          ) as React.ReactNode,
+            </ToastAction>
+          ),
         });
 
         // ── Browser push notifications (if enabled) ───────────────────────
