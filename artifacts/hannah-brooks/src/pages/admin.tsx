@@ -11,7 +11,7 @@ import {
   ToggleLeft, ToggleRight, AlertCircle, ExternalLink,
   Crown, Lock, Save, Key, CreditCard, User, Paperclip,
   Eye, EyeOff, ChevronRight, ArrowLeft, X, CheckCheck, Camera,
-  Brain, Video, Users, TrendingUp, Upload, BarChart2, Copy, Edit3
+  Brain, Video, Users, TrendingUp, Upload, BarChart2, Copy, Edit3, Check
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 
@@ -262,6 +262,8 @@ export default function Admin() {
   const [connectInput, setConnectInput] = useState("");
   const [connectError, setConnectError] = useState("");
   const [connectTesting, setConnectTesting] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
+  const copyUrl = (url: string) => { navigator.clipboard.writeText(url).catch(() => {}); setUrlCopied(true); setTimeout(() => setUrlCopied(false), 2000); };
   const API = apiUrl ? `${apiUrl.replace(/\/$/, "")}/api` : `${BASE}/api`;
   const [authed, setAuthed] = useState(() => !!sessionStorage.getItem("hb_admin_key"));
   const [adminKey, setAdminKey] = useState(() => sessionStorage.getItem("hb_admin_key") || "");
@@ -761,13 +763,22 @@ export default function Admin() {
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,168,76,0.15)" }}>
             <div>
               <label className="text-xs text-white/40 block mb-2 uppercase tracking-wider font-semibold">Backend URL</label>
-              <Input
-                placeholder="https://your-app.replit.app"
-                value={connectInput}
-                onChange={e => { setConnectInput(e.target.value); setConnectError(""); }}
-                onKeyDown={e => e.key === "Enter" && handleConnect()}
-                className="bg-black/60 border-white/10 text-white h-12 rounded-xl placeholder:text-white/20"
-              />
+              <div className="relative">
+                <Input
+                  placeholder="https://your-app.replit.app"
+                  value={connectInput}
+                  onChange={e => { setConnectInput(e.target.value); setConnectError(""); }}
+                  onKeyDown={e => e.key === "Enter" && handleConnect()}
+                  className="bg-black/60 border-white/10 text-white h-12 rounded-xl placeholder:text-white/20 pr-10"
+                />
+                {connectInput && (
+                  <button onClick={() => copyUrl(connectInput)} title="Copy URL"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                    style={{ color: urlCopied ? "#4ade80" : "rgba(255,255,255,0.25)" }}>
+                    {urlCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                )}
+              </div>
               <p className="text-xs text-white/20 mt-1.5">Your Replit app URL, no trailing slash needed</p>
             </div>
             {connectError && (
@@ -1042,7 +1053,12 @@ export default function Admin() {
             style={{ background: "rgba(74,222,128,0.05)", borderColor: "rgba(74,222,128,0.15)" }}>
             <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
             <span className="text-xs text-white/30 font-mono max-w-[140px] truncate">{apiUrl.replace(/^https?:\/\//, "")}</span>
-            <button onClick={disconnect} title="Disconnect" className="text-white/20 hover:text-red-400 transition-colors ml-0.5">
+            <button onClick={() => copyUrl(apiUrl)} title="Copy API URL"
+              className="transition-colors ml-0.5"
+              style={{ color: urlCopied ? "#4ade80" : "rgba(255,255,255,0.2)" }}>
+              {urlCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            </button>
+            <button onClick={disconnect} title="Disconnect" className="text-white/20 hover:text-red-400 transition-colors">
               <X className="w-3 h-3" />
             </button>
           </div>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   LayoutDashboard, Users, Brain, Monitor, MessageSquare,
-  BarChart3, Settings, Menu, X, Link2, Rss, LogOut
+  BarChart3, Settings, Menu, X, Link2, Rss, LogOut, Copy, Check
 } from "lucide-react";
 import type { Page } from "../App";
 import AppSwitcher from "./AppSwitcher";
@@ -29,6 +29,8 @@ export default function Layout({ children, page, onNavigate, onDisconnect, apiUr
   apiUrl?: string;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
+  const copyUrl = (url: string) => { navigator.clipboard.writeText(url).catch(() => {}); setUrlCopied(true); setTimeout(() => setUrlCopied(false), 2000); };
 
   const displayHost = apiUrl ? apiUrl.replace(/^https?:\/\//, "") : "";
 
@@ -65,7 +67,11 @@ export default function Layout({ children, page, onNavigate, onDisconnect, apiUr
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border"
               style={{ background: "rgba(74,222,128,0.05)", borderColor: "rgba(74,222,128,0.15)" }}>
               <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
-              <span className="text-xs mono font-medium max-w-[130px] truncate" style={{ color: "rgba(255,255,255,0.3)" }}>{displayHost}</span>
+              <span className="text-xs mono font-medium max-w-[110px] truncate" style={{ color: "rgba(255,255,255,0.3)" }}>{displayHost}</span>
+              <button onClick={() => copyUrl(apiUrl!)} title="Copy API URL"
+                style={{ display: "flex", background: "none", border: "none", cursor: "pointer", padding: 0, color: urlCopied ? "#4ade80" : "rgba(255,255,255,0.2)" }}>
+                {urlCopied ? <Check size={11} /> : <Copy size={11} />}
+              </button>
             </div>
           )}
           <AppSwitcher />

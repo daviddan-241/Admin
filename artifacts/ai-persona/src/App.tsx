@@ -10,7 +10,7 @@ import SettingsPage from "./pages/SettingsPage";
 import UniversalChanger from "./pages/UniversalChanger";
 import SocialFeed from "./pages/SocialFeed";
 import { setAdminKey } from "./lib/api";
-import { Globe, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Globe, AlertCircle, Eye, EyeOff, Copy, Check } from "lucide-react";
 
 const GOLD = "#c9a84c";
 const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)";
@@ -22,6 +22,8 @@ export default function App() {
   const [connectInput, setConnectInput] = useState("");
   const [connectError, setConnectError] = useState("");
   const [connectTesting, setConnectTesting] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
+  const copyUrl = (url: string) => { navigator.clipboard.writeText(url).catch(() => {}); setUrlCopied(true); setTimeout(() => setUrlCopied(false), 2000); };
 
   const [authed, setAuthed] = useState<boolean>(() => !!localStorage.getItem("persona_admin_key"));
   const [pwInput, setPwInput] = useState("");
@@ -116,14 +118,22 @@ export default function App() {
           <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,168,76,0.15)", borderRadius: 24, padding: "1.75rem", display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
               <label style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", display: "block", marginBottom: 8 }}>Backend URL</label>
-              <input
-                type="url"
-                placeholder="https://your-app.replit.app"
-                value={connectInput}
-                onChange={e => { setConnectInput(e.target.value); setConnectError(""); }}
-                onKeyDown={e => e.key === "Enter" && handleConnect()}
-                style={{ width: "100%", height: 48, background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, color: "#fff", padding: "0 14px", fontSize: 14, outline: "none", boxSizing: "border-box" }}
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  type="url"
+                  placeholder="https://your-app.replit.app"
+                  value={connectInput}
+                  onChange={e => { setConnectInput(e.target.value); setConnectError(""); }}
+                  onKeyDown={e => e.key === "Enter" && handleConnect()}
+                  style={{ width: "100%", height: 48, background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, color: "#fff", padding: "0 44px 0 14px", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                />
+                {connectInput && (
+                  <button onClick={() => copyUrl(connectInput)} title="Copy URL"
+                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", display: "flex", color: urlCopied ? "#4ade80" : "rgba(255,255,255,0.25)", padding: 0 }}>
+                    {urlCopied ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
+                )}
+              </div>
               <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)", marginTop: 6 }}>Your Replit app URL — no trailing slash needed</p>
             </div>
 
