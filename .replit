@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bash"]
+modules = ["nodejs-20", "web", "bash", "python-3.11"]
 
 [deployment]
 router = "application"
@@ -80,7 +80,11 @@ externalPort = 4200
 
 [[ports]]
 localPort = 5000
-externalPort = 80
+externalPort = 5000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
 
 [[ports]]
 localPort = 8081
