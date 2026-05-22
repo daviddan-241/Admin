@@ -38,4 +38,16 @@ app.use("/uploads", express.static(uploadsDir));
 
 app.use("/api", router);
 
+// ── Serve built frontend (single-port deployment) ────────────────────────────
+// In production, the built admin portal lives at ../hannah-brooks/dist/public
+const frontendDist = path.resolve(process.cwd(), "..", "hannah-brooks", "dist", "public");
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist, { index: "index.html" }));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(frontendDist, "index.html"));
+  });
+} else {
+  app.get("/", (_req, res) => res.json({ status: "ok", message: "Hannah Brooks API — build the frontend and it will be served here" }));
+}
+
 export default app;
