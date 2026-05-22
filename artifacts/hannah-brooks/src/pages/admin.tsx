@@ -259,7 +259,7 @@ function ChatBubble({ msg, session }: { msg: ChatMessage; session: ChatSession }
 export default function Admin() {
   const { toast } = useToast();
   const [apiUrl, setApiUrl] = useState<string>(() => localStorage.getItem("hb_api_url") || "");
-  const [connectInput, setConnectInput] = useState("");
+  const [connectInput, setConnectInput] = useState(() => window.location.origin.includes("localhost") ? "" : window.location.origin);
   const [connectError, setConnectError] = useState("");
   const [connectTesting, setConnectTesting] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
