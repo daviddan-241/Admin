@@ -51,7 +51,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=5000 BASE_PATH=/ pnpm --filter @workspace/hannah-brooks run dev"
+args = "PORT=5000 BASE_PATH=/ VITE_ADMIN_ONLY=true pnpm --filter @workspace/hannah-brooks run dev"
 waitForPort = 5000
 
 [[workflows.workflow]]
@@ -80,11 +80,7 @@ externalPort = 4200
 
 [[ports]]
 localPort = 5000
-externalPort = 5000
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
+externalPort = 80
 
 [[ports]]
 localPort = 8081

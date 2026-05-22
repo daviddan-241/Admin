@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   LayoutDashboard, Users, Brain, Monitor, MessageSquare,
-  BarChart3, Settings, Menu, X, Link2, Rss
+  BarChart3, Settings, Menu, X, Link2, Rss, LogOut
 } from "lucide-react";
 import type { Page } from "../App";
 import AppSwitcher from "./AppSwitcher";
@@ -21,12 +21,16 @@ const NAV = [
   { id: "settings" as Page, label: "Settings", icon: <Settings size={16} /> },
 ];
 
-export default function Layout({ children, page, onNavigate }: {
+export default function Layout({ children, page, onNavigate, onDisconnect, apiUrl }: {
   children: React.ReactNode;
   page: Page;
   onNavigate: (p: Page) => void;
+  onDisconnect?: () => void;
+  apiUrl?: string;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const displayHost = apiUrl ? apiUrl.replace(/^https?:\/\//, "") : "";
 
   return (
     <div className="min-h-screen grid-bg" style={{ background: "var(--bg)" }}>
@@ -56,13 +60,22 @@ export default function Layout({ children, page, onNavigate }: {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl glass"
-            style={{ border: "1px solid rgba(201,168,76,0.2)" }}>
-            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: GOLD }} />
-            <span className="text-xs mono font-semibold" style={{ color: GOLD }}>LIVE · CONNECTED</span>
-          </div>
+        <div className="flex items-center gap-2">
+          {displayHost && (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border"
+              style={{ background: "rgba(74,222,128,0.05)", borderColor: "rgba(74,222,128,0.15)" }}>
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+              <span className="text-xs mono font-medium max-w-[130px] truncate" style={{ color: "rgba(255,255,255,0.3)" }}>{displayHost}</span>
+            </div>
+          )}
           <AppSwitcher />
+          {onDisconnect && (
+            <button onClick={onDisconnect} title="Disconnect & logout"
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover:bg-red-500/10"
+              style={{ border: "1px solid rgba(255,255,255,0.06)", color: "rgba(232,223,200,0.3)" }}>
+              <LogOut size={15} />
+            </button>
+          )}
           <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs text-black"
             style={{ background: GOLD_GRAD }}>
             HB

@@ -1,4 +1,7 @@
-const API = "/api";
+function getApiBase(): string {
+  const stored = localStorage.getItem("hb_api_url");
+  return stored ? `${stored.replace(/\/$/, "")}/api` : "/api";
+}
 
 function getAdminKey(): string {
   return localStorage.getItem("persona_admin_key") || "hannah2024!";
@@ -9,7 +12,7 @@ export function setAdminKey(key: string) {
 }
 
 async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${getApiBase()}${path}`, {
     ...opts,
     headers: {
       "Content-Type": "application/json",

@@ -24,7 +24,12 @@ export const ThemeContext = React.createContext<{
   toggleTheme: () => void;
 }>({ theme: "dark", toggleTheme: () => {} });
 
+const ADMIN_ONLY = import.meta.env.VITE_ADMIN_ONLY === "true";
+
 function Router() {
+  if (ADMIN_ONLY) {
+    return <Admin />;
+  }
   return (
     <Switch>
       <Route path="/" component={Home} />
