@@ -16,7 +16,6 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-const API = `${BASE}/api`;
 const logoHB = `${import.meta.env.BASE_URL}logo-hb.png`;
 const GOLD = "#c9a84c";
 const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)";
@@ -259,6 +258,11 @@ function ChatBubble({ msg, session }: { msg: ChatMessage; session: ChatSession }
 // ── Main Admin Component ─────────────────────────────────────────────────
 export default function Admin() {
   const { toast } = useToast();
+  const [apiUrl, setApiUrl] = useState<string>(() => localStorage.getItem("hb_api_url") || "");
+  const [connectInput, setConnectInput] = useState("");
+  const [connectError, setConnectError] = useState("");
+  const [connectTesting, setConnectTesting] = useState(false);
+  const API = apiUrl ? `${apiUrl.replace(/\/$/, "")}/api` : `${BASE}/api`;
   const [authed, setAuthed] = useState(() => !!sessionStorage.getItem("hb_admin_key"));
   const [adminKey, setAdminKey] = useState(() => sessionStorage.getItem("hb_admin_key") || "");
   const [pwInput, setPwInput] = useState("");
@@ -648,6 +652,40 @@ export default function Admin() {
     toast({ title: perm === "granted" ? "Notifications enabled" : "Permission denied" });
   };
 
+  const handleConnect = async () => {
+    const url = connectInput.trim().replace(/\/$/, "");
+    if (!url) return;
+    setConnectTesting(true);
+    setConnectError("");
+    try {
+      const res = await fetch(`${url}/api/admin/auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: "__test__" }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok || res.status === 401) {
+        localStorage.setItem("hb_api_url", url);
+        setApiUrl(url);
+      } else {
+        setConnectError(`Server returned ${res.status}. Make sure the URL is correct.`);
+      }
+    } catch {
+      setConnectError("Could not reach that URL. Check it's correct and the server is running.");
+    }
+    setConnectTesting(false);
+  };
+
+  const disconnect = () => {
+    localStorage.removeItem("hb_api_url");
+    sessionStorage.removeItem("hb_admin_key");
+    setApiUrl("");
+    setConnectInput("");
+    setConnectError("");
+    setAuthed(false);
+    setAdminKey("");
+  };
+
   const logout = () => { sessionStorage.removeItem("hb_admin_key"); setAuthed(false); setAdminKey(""); };
 
   // ── AI Studio handlers ─────────────────────────────────────────────────
@@ -704,6 +742,53 @@ export default function Admin() {
   };
 
   // ── LOGIN ─────────────────────────────────────────────────────────────
+  if (!apiUrl) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
+        style={{ background: "radial-gradient(ellipse at top,#1a1000 0%,#060606 70%)" }}>
+        <div className="absolute w-[500px] h-[500px] rounded-full opacity-5 blur-3xl pointer-events-none"
+          style={{ background: GOLD_GRAD, top: "-200px", left: "50%", transform: "translateX(-50%)" }} />
+        <div className="w-full max-w-[400px] relative z-10">
+          <div className="text-center mb-10">
+            <div className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center border border-amber-400/30"
+              style={{ background: "rgba(201,168,76,0.08)" }}>
+              <Globe className="w-8 h-8" style={{ color: GOLD }} />
+            </div>
+            <h1 className="text-3xl font-serif font-bold text-white">Connect to Backend</h1>
+            <p className="text-white/30 mt-2 text-sm">Enter your public API URL to get started</p>
+          </div>
+          <div className="rounded-3xl p-7 space-y-4 backdrop-blur-xl"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,168,76,0.15)" }}>
+            <div>
+              <label className="text-xs text-white/40 block mb-2 uppercase tracking-wider font-semibold">Backend URL</label>
+              <Input
+                placeholder="https://your-app.replit.app"
+                value={connectInput}
+                onChange={e => { setConnectInput(e.target.value); setConnectError(""); }}
+                onKeyDown={e => e.key === "Enter" && handleConnect()}
+                className="bg-black/60 border-white/10 text-white h-12 rounded-xl placeholder:text-white/20"
+              />
+              <p className="text-xs text-white/20 mt-1.5">Your Replit app URL, no trailing slash needed</p>
+            </div>
+            {connectError && (
+              <div className="flex items-start gap-2 rounded-xl px-4 py-3 text-sm text-red-300 border border-red-500/20"
+                style={{ background: "rgba(239,68,68,0.08)" }}>
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{connectError}</span>
+              </div>
+            )}
+            <button onClick={handleConnect} disabled={connectTesting || !connectInput.trim()}
+              className="w-full h-12 rounded-xl font-bold text-black tracking-wider transition-all disabled:opacity-50 text-sm"
+              style={{ background: GOLD_GRAD, boxShadow: "0 4px 20px rgba(201,168,76,0.3)" }}>
+              {connectTesting ? "Testing connection…" : "Connect & Continue →"}
+            </button>
+          </div>
+          <p className="text-center text-white/15 text-xs mt-8 tracking-wider">CREATOR PORTAL · PRIVATE ACCESS</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!authed) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
@@ -718,6 +803,13 @@ export default function Admin() {
             </div>
             <h1 className="text-3xl font-serif font-bold text-white">Creator Portal</h1>
             <p className="text-white/25 mt-2 text-sm tracking-[0.2em] uppercase">Sophie Rain · Private</p>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-xs text-white/30 font-mono truncate max-w-[220px]">{apiUrl}</span>
+              <button onClick={disconnect} className="text-xs text-white/20 hover:text-white/50 transition-colors underline ml-1">
+                Change
+              </button>
+            </div>
           </div>
           <div className="rounded-3xl p-7 space-y-4 backdrop-blur-xl"
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,168,76,0.15)" }}>
@@ -945,6 +1037,15 @@ export default function Admin() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {/* Connected server indicator */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg mr-2 border"
+            style={{ background: "rgba(74,222,128,0.05)", borderColor: "rgba(74,222,128,0.15)" }}>
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+            <span className="text-xs text-white/30 font-mono max-w-[140px] truncate">{apiUrl.replace(/^https?:\/\//, "")}</span>
+            <button onClick={disconnect} title="Disconnect" className="text-white/20 hover:text-red-400 transition-colors ml-0.5">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
           {/* Notification badge — unread messages + pending items */}
           {(() => {
             const totalBadge = (chatSessions.reduce((a, s) => a + (s.unreadCount || 0), 0)) +
