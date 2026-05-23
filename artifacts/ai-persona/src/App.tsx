@@ -9,13 +9,14 @@ import Analytics from "./pages/Analytics";
 import SettingsPage from "./pages/SettingsPage";
 import UniversalChanger from "./pages/UniversalChanger";
 import SocialFeed from "./pages/SocialFeed";
+import HowToUse from "./pages/HowToUse";
 import { setAdminKey } from "./lib/api";
 import { Globe, AlertCircle, Eye, EyeOff, Copy, Check } from "lucide-react";
 
 const GOLD = "#c9a84c";
 const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)";
 
-export type Page = "dashboard" | "personas" | "training" | "live" | "chat" | "universal" | "analytics" | "settings" | "social";
+export type Page = "dashboard" | "personas" | "training" | "live" | "chat" | "universal" | "analytics" | "settings" | "social" | "guide";
 
 export default function App() {
   const [apiUrl, setApiUrl] = useState<string>(() => localStorage.getItem("hb_api_url") || "");
@@ -99,6 +100,7 @@ export default function App() {
       case "analytics": return <Analytics />;
       case "settings": return <SettingsPage />;
       case "social": return <SocialFeed />;
+      case "guide": return <HowToUse />;
       default: return <Dashboard onNavigate={setPage} />;
     }
   };
