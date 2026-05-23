@@ -436,11 +436,9 @@ router.post("/social/github/push", adminAuth, async (req, res): Promise<void> =>
   }
 
   try {
-    await execAsync('git config user.email "admin@hannahbrooks.com"');
-    await execAsync('git config user.name "Hannah Brooks Admin"');
     await execAsync("git add -A");
     const timestamp = new Date().toISOString();
-    await execAsync(`git commit -m "Auto-sync [${target}] ${timestamp}" --allow-empty`);
+    await execAsync(`git -c user.email="admin@hannahbrooks.com" -c user.name="Hannah Brooks Admin" commit -m "Auto-sync [${target}] ${timestamp}" --allow-empty`);
     const isShallow = await execAsync("git rev-parse --is-shallow-repository").then(r => r.stdout.trim() === "true").catch(() => false);
     if (isShallow) await execAsync("git fetch --unshallow").catch(() => null);
     const { stdout, stderr } = await execAsync(`git push "${remote}" HEAD:main --force --no-thin`);

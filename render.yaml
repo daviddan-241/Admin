@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: hannah-brooks
+    name: hannah-brooks-api
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm install -g pnpm && pnpm install && VITE_ADMIN_ONLY=true BASE_PATH=/ pnpm --filter @workspace/hannah-brooks run build && pnpm --filter @workspace/api-server run build
+    buildCommand: corepack prepare pnpm@latest --activate && pnpm install && pnpm --filter @workspace/db run push && VITE_ADMIN_ONLY=true BASE_PATH=/ pnpm --filter @workspace/hannah-brooks run build && pnpm --filter @workspace/api-server run build
     startCommand: pnpm --filter @workspace/api-server run start
     healthCheckPath: /api/health
     envVars:
@@ -28,6 +28,22 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: RUNWAYML_API_KEY
+        sync: false
+
+  - type: web
+    name: hannah-brooks-ai-persona
+    runtime: static
+    plan: free
+    region: oregon
+    buildCommand: corepack prepare pnpm@latest --activate && pnpm install && pnpm --filter @workspace/ai-persona run build
+    staticPublishPath: ./artifacts/ai-persona/dist/public
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
 
 databases:
   - name: hannah-brooks-db
