@@ -18,8 +18,13 @@ const GOLD_GRAD = "linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c)";
 
 export type Page = "dashboard" | "personas" | "training" | "live" | "chat" | "universal" | "analytics" | "settings" | "social" | "guide";
 
+const BUILT_IN_API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim().replace(/\/$/, "") || "";
+
 export default function App() {
-  const [apiUrl, setApiUrl] = useState<string>(() => localStorage.getItem("hb_api_url") || "");
+  const [apiUrl, setApiUrl] = useState<string>(() => {
+    if (BUILT_IN_API_URL) return BUILT_IN_API_URL;
+    return localStorage.getItem("hb_api_url") || "";
+  });
   const [connectInput, setConnectInput] = useState("");
   const [connectError, setConnectError] = useState("");
   const [connectTesting, setConnectTesting] = useState(false);
