@@ -296,10 +296,17 @@ export default function Admin() {
   const aiProcessFileRef = useRef<HTMLInputElement>(null);
 
   // ── AI Scheduler state ──────────────────────────────────────────────────
-  type SchedulerSuggestion = { sessionId: number; fanName: string; lastFanMessage: string; suggestion: string; generatedAt: string };
+  type SchedulerSuggestion = {
+    sessionId: number; fanName: string; fanEmail: string; lastFanMessage: string;
+    suggestion: string; imageUrl?: string; isGiftCardRequest: boolean;
+    humanNote: string; delayMs: number; generatedAt: string;
+  };
+  type ScheduledReply = { sessionId: number; fanName: string; sendAt: string; scheduledAt: string; message: string; imageUrl?: string };
   const [schedulerEnabled, setSchedulerEnabled] = useState(false);
   const [schedulerIntervalMin, setSchedulerIntervalMin] = useState(30);
   const [schedulerSuggestions, setSchedulerSuggestions] = useState<SchedulerSuggestion[]>([]);
+  const [scheduledReplies, setScheduledReplies] = useState<ScheduledReply[]>([]);
+  const [countdown, setCountdown] = useState<Record<number, string>>({});
   const [schedulerLoading, setSchedulerLoading] = useState(false);
   const [schedulerLastRun, setSchedulerLastRun] = useState<string | null>(null);
   const [editingSuggestion, setEditingSuggestion] = useState<Record<number, string>>({});
@@ -971,16 +978,34 @@ export default function Admin() {
     setVoiceLoading(false);
   };
 
+  // ── Countdown timer for scheduled replies ──────────────────────────────
+  useEffect(() => {
+    if (!scheduledReplies.length) return;
+    const t = setInterval(() => {
+      const now = Date.now();
+      const times: Record<number, string> = {};
+      scheduledReplies.forEach(r => {
+        const ms = new Date(r.sendAt).getTime() - now;
+        if (ms <= 0) times[r.sessionId] = "Sending…";
+        else { const m = Math.floor(ms / 60000); const s = Math.floor((ms % 60000) / 1000); times[r.sessionId] = m > 0 ? `${m}m ${s}s` : `${s}s`; }
+      });
+      setCountdown(times);
+      setScheduledReplies(prev => prev.filter(r => new Date(r.sendAt).getTime() > now - 8000));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [scheduledReplies]);
+
   // ── AI Scheduler functions ──────────────────────────────────────────────
   const fetchSchedulerStatus = async () => {
     try {
       const res = await fetch(`${API}/ai/scheduler/status`, { headers: h });
       if (!res.ok) return;
-      const data = await res.json() as { enabled: boolean; intervalMinutes: number; lastRun: string | null; suggestions: { sessionId: number; fanName: string; lastFanMessage: string; suggestion: string; generatedAt: string }[] };
+      const data = await res.json() as { enabled: boolean; intervalMinutes: number; lastRun: string | null; suggestions: SchedulerSuggestion[]; scheduledReplies?: ScheduledReply[] };
       setSchedulerEnabled(data.enabled ?? false);
       setSchedulerIntervalMin(data.intervalMinutes ?? 30);
       setSchedulerSuggestions(data.suggestions ?? []);
       setSchedulerLastRun(data.lastRun ?? null);
+      setScheduledReplies(data.scheduledReplies ?? []);
     } catch {}
   };
 
@@ -1018,21 +1043,35 @@ export default function Admin() {
     setSchedulerLoading(false);
   };
 
-  const approveSchedulerSuggestion = async (sessionId: number) => {
+  const approveSchedulerSuggestion = async (sessionId: number, scheduleDelayMs?: number) => {
     const sug = schedulerSuggestions.find(s => s.sessionId === sessionId);
     const msg = (editingSuggestion[sessionId] ?? sug?.suggestion ?? "").trim();
     if (!msg) return;
     try {
-      await fetch(`${API}/ai/scheduler/suggestions/${sessionId}/approve`, {
+      const res = await fetch(`${API}/ai/scheduler/suggestions/${sessionId}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...h },
-        body: JSON.stringify({ message: msg }),
+        body: JSON.stringify({ message: msg, imageUrl: sug?.imageUrl, scheduleDelayMs }),
       });
-      toast({ title: "Reply sent to fan!" });
+      const data = await res.json() as { scheduled?: boolean; sendAt?: string };
+      if (data.scheduled && data.sendAt && sug) {
+        toast({ title: `⏱ Scheduled — sending in ${Math.round((scheduleDelayMs ?? 0) / 60000)} min` });
+        setScheduledReplies(prev => [...prev, { sessionId, fanName: sug.fanName, sendAt: data.sendAt!, scheduledAt: new Date().toISOString(), message: msg, imageUrl: sug.imageUrl }]);
+      } else {
+        toast({ title: "✓ Reply sent to fan!" });
+        void fetchAll();
+      }
       setSchedulerSuggestions(prev => prev.filter(s => s.sessionId !== sessionId));
       setEditingSuggestion(prev => { const n = { ...prev }; delete n[sessionId]; return n; });
-      void fetchAll();
     } catch { toast({ title: "Failed to send reply", variant: "destructive" }); }
+  };
+
+  const cancelScheduledReply = async (sessionId: number) => {
+    try {
+      await fetch(`${API}/ai/scheduler/scheduled/${sessionId}`, { method: "DELETE", headers: h });
+      setScheduledReplies(prev => prev.filter(r => r.sessionId !== sessionId));
+      toast({ title: "Scheduled reply cancelled" });
+    } catch { toast({ title: "Cancel failed", variant: "destructive" }); }
   };
 
   const dismissSchedulerSuggestion = async (sessionId: number) => {
@@ -2215,48 +2254,103 @@ export default function Admin() {
                     </div>
                   </div>
 
+                  {/* ── Scheduled (queued) replies countdown ── */}
+                  {scheduledReplies.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2">
+                        <Clock className="w-3 h-3" style={{ color: "#7c3aed" }} />
+                        Queued to Send ({scheduledReplies.length})
+                      </div>
+                      {scheduledReplies.map(r => (
+                        <div key={r.sessionId} className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.25)" }}>
+                          {r.imageUrl && <img src={r.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0 opacity-80" />}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold text-purple-300">{r.fanName}</div>
+                            <div className="text-[11px] text-white/40 truncate">{r.message.slice(0, 60)}{r.message.length > 60 ? "…" : ""}</div>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <div className="text-xs font-mono font-bold text-purple-400">{countdown[r.sessionId] ?? "…"}</div>
+                            <div className="text-[10px] text-white/20">until send</div>
+                          </div>
+                          <button onClick={() => cancelScheduledReply(r.sessionId)} className="text-white/20 hover:text-red-400 transition-colors shrink-0 ml-1">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ── Pending suggestions ── */}
                   {schedulerSuggestions.length > 0 && (
                     <div className="space-y-3">
                       <div className="text-xs font-bold text-white/40 uppercase tracking-widest flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-black shrink-0" style={{ background: GOLD }}>
                           {schedulerSuggestions.length}
                         </span>
-                        Pending AI Replies — Edit &amp; Send
+                        Pending AI Replies — Review &amp; Send
                       </div>
                       {schedulerSuggestions.map(s => (
-                        <div key={s.sessionId} className="rounded-xl p-4 space-y-3" style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <div key={s.sessionId} className="rounded-xl p-4 space-y-3" style={{ background: s.isGiftCardRequest ? "rgba(124,58,237,0.08)" : "rgba(0,0,0,0.35)", border: s.isGiftCardRequest ? "1px solid rgba(124,58,237,0.3)" : "1px solid rgba(255,255,255,0.06)" }}>
+                          {/* Header */}
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-black shrink-0" style={{ background: GOLD_GRAD }}>
                                 {s.fanName.charAt(0).toUpperCase()}
                               </div>
                               <span className="text-sm font-semibold text-white">{s.fanName}</span>
-                              <span className="text-xs text-white/25">said:</span>
+                              {s.isGiftCardRequest && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(124,58,237,0.3)", color: "#c4b5fd" }}>🎁 Gift Card Ask</span>
+                              )}
+                              {s.imageUrl && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(0,0,0,0.4)", color: GOLD }}>📷 w/ Photo</span>
+                              )}
+                              <span className="text-[10px] text-white/25 italic">{s.humanNote}</span>
                             </div>
-                            <button onClick={() => dismissSchedulerSuggestion(s.sessionId)}
-                              className="text-white/20 hover:text-white/50 transition-colors shrink-0">
+                            <button onClick={() => dismissSchedulerSuggestion(s.sessionId)} className="text-white/20 hover:text-white/50 transition-colors shrink-0">
                               <X className="w-4 h-4" />
                             </button>
                           </div>
-                          <div className="text-xs text-white/40 italic px-3 py-2 rounded-lg border border-white/5 bg-white/5 leading-relaxed">
-                            "{s.lastFanMessage.slice(0, 140)}{s.lastFanMessage.length > 140 ? "…" : ""}"
+
+                          {/* Fan's message */}
+                          <div className="text-xs text-white/35 italic px-3 py-2 rounded-lg border border-white/5 bg-white/[0.03] leading-relaxed">
+                            "{s.lastFanMessage.slice(0, 150)}{s.lastFanMessage.length > 150 ? "…" : ""}"
                           </div>
+
+                          {/* Image preview */}
+                          {s.imageUrl && (
+                            <div className="flex items-center gap-3">
+                              <img src={s.imageUrl} alt="proof photo" className="w-16 h-16 rounded-xl object-cover border border-white/10" />
+                              <div className="text-[11px] text-white/35 leading-relaxed">This photo will be sent<br/>after the text reply.</div>
+                            </div>
+                          )}
+
+                          {/* Editable reply */}
                           <div>
-                            <label className="text-[10px] font-bold text-white/25 uppercase tracking-widest block mb-1.5">AI Reply (edit before sending)</label>
+                            <label className="text-[10px] font-bold text-white/25 uppercase tracking-widest block mb-1.5">AI Reply — edit freely</label>
                             <Textarea
                               value={editingSuggestion[s.sessionId] ?? s.suggestion}
                               onChange={e => setEditingSuggestion(prev => ({ ...prev, [s.sessionId]: e.target.value }))}
                               rows={2}
                               className="bg-black/50 border-white/10 text-white text-sm rounded-xl resize-none placeholder:text-white/20" />
                           </div>
-                          <div className="flex gap-2">
+
+                          {/* Action buttons */}
+                          <div className="flex gap-2 flex-wrap">
                             <button onClick={() => approveSchedulerSuggestion(s.sessionId)}
                               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-black"
                               style={{ background: GOLD_GRAD }}>
-                              <Send className="w-3.5 h-3.5" /> Send Reply
+                              <Send className="w-3.5 h-3.5" /> Send Now
                             </button>
+                            {s.delayMs > 0 && (
+                              <button onClick={() => approveSchedulerSuggestion(s.sessionId, s.delayMs)}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors"
+                                style={{ borderColor: "rgba(124,58,237,0.4)", color: "#c4b5fd", background: "rgba(124,58,237,0.08)" }}>
+                                <Clock className="w-3 h-3" />
+                                Schedule ({s.delayMs < 60000 ? `${Math.round(s.delayMs/1000)}s` : `${Math.round(s.delayMs/60000)}m`})
+                              </button>
+                            )}
                             <button onClick={() => dismissSchedulerSuggestion(s.sessionId)}
-                              className="px-3 py-2 rounded-xl text-sm text-white/30 border border-white/10 hover:text-white/50 transition-colors">
+                              className="px-3 py-2 rounded-xl text-xs text-white/25 border border-white/8 hover:text-white/50 transition-colors">
                               Dismiss
                             </button>
                           </div>
@@ -2265,11 +2359,11 @@ export default function Admin() {
                     </div>
                   )}
 
-                  {schedulerSuggestions.length === 0 && (
+                  {schedulerSuggestions.length === 0 && scheduledReplies.length === 0 && (
                     <p className="text-center text-xs text-white/20 py-2">
                       {schedulerEnabled
                         ? "No pending suggestions — all fans have recent replies"
-                        : 'Click "Scan Now" to check for unanswered fans, or start the scheduler to run automatically'}
+                        : 'Click "Scan Now" to check for unanswered fans, or start the scheduler'}
                     </p>
                   )}
                 </GoldCard>
