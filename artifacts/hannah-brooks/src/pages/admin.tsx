@@ -1209,6 +1209,21 @@ export default function Admin() {
               </div>
             </div>
           )}
+
+          {/* AI Persona Studio link */}
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+            <a
+              href={`${window.location.origin.replace(/:\d+$/, ":3000")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all w-full"
+              style={{ color: "rgba(201,168,76,0.7)", border: "1px solid rgba(201,168,76,0.15)", background: "rgba(201,168,76,0.04)" }}>
+              <Brain className="w-4 h-4 shrink-0" style={{ color: GOLD }} />
+              <span>AI Persona Studio</span>
+              <ExternalLink className="w-3 h-3 ml-auto shrink-0 opacity-50" />
+            </a>
+            <p className="text-[10px] text-white/15 px-3 mt-1.5">Opens in a new tab</p>
+          </div>
         </aside>
 
         {/* ── Main Content ──────────────────────────────────────────── */}
