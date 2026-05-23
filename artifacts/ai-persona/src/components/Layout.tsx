@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   LayoutDashboard, Users, Brain, Monitor, MessageSquare,
-  BarChart3, Settings, Menu, X, Link2, Rss, LogOut, Copy, Check
+  BarChart3, Settings, Menu, X, Link2, Rss, LogOut, Copy, Check, BookOpen
 } from "lucide-react";
 import type { Page } from "../App";
 import AppSwitcher from "./AppSwitcher";
@@ -19,6 +19,7 @@ const NAV = [
   { id: "live" as Page, label: "Live Preview", icon: <Monitor size={16} /> },
   { id: "universal" as Page, label: "Universal Changer", icon: <Link2 size={16} /> },
   { id: "settings" as Page, label: "Settings", icon: <Settings size={16} /> },
+  { id: "guide" as Page, label: "How To Use", icon: <BookOpen size={16} />, badge: "GUIDE" },
 ];
 
 export default function Layout({ children, page, onNavigate, onDisconnect, apiUrl }: {
