@@ -34,12 +34,30 @@ services:
         sync: false
 
   - type: web
+    name: hannah-brooks-fan-app
+    runtime: static
+    plan: free
+    region: oregon
+    buildCommand: corepack prepare pnpm@latest --activate && pnpm install && BASE_PATH=/ pnpm --filter @workspace/hannah-brooks run build
+    staticPublishPath: ./artifacts/hannah-brooks/dist/public
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  - type: web
     name: hannah-brooks-ai-persona
     runtime: static
     plan: free
     region: oregon
     buildCommand: corepack prepare pnpm@latest --activate && pnpm install && pnpm --filter @workspace/ai-persona run build
     staticPublishPath: ./artifacts/ai-persona/dist/public
+    envVars:
+      - key: VITE_API_URL
+        sync: false
     routes:
       - type: rewrite
         source: /*
