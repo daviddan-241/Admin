@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { loadSettingsFromDb } from "./routes/settings";
 import { loadSyncConfigFromDb } from "./routes/social";
+import { ensureSchema } from "@workspace/db/migrate";
 
 const rawPort = process.env["PORT"];
 
@@ -18,6 +19,7 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 async function start() {
+  await ensureSchema().catch((err) => logger.warn({ err }, "Schema sync failed — continuing anyway"));
   await loadSettingsFromDb();
   await loadSyncConfigFromDb();
 
