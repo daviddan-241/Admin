@@ -335,6 +335,7 @@ export default function Admin() {
   const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
   const [giftCardFilter, setGiftCardFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [giftCardAdminNote, setGiftCardAdminNote] = useState<Record<number, string>>({});
+  const [lightboxImg, setLightboxImg] = useState<{ src: string; label: string; gcId: number } | null>(null);
   const [socialConfig, setSocialConfig] = useState<SocialConfig | null>(null);
   const [syncingX, setSyncingX] = useState(false);
   const [syncingTikTok, setSyncingTikTok] = useState(false);
@@ -2009,19 +2010,50 @@ export default function Admin() {
                         <div className="flex gap-3 shrink-0">
                           {[{ label: "Front", url: gc.frontImageUrl }, { label: "Back", url: gc.backImageUrl }].map(({ label, url }) => {
                             const src = url.startsWith("data:") ? url : `${API}${url}`;
-                            const ext = url.startsWith("data:image/png") ? "png" : url.startsWith("data:image/gif") ? "gif" : "jpg";
+                            const mime = url.startsWith("data:image/png") ? "image/png" : url.startsWith("data:image/gif") ? "image/gif" : "image/jpeg";
+                            const ext = mime === "image/png" ? "png" : mime === "image/gif" ? "gif" : "jpg";
+                            const filename = `giftcard_${gc.id}_${label.toLowerCase()}.${ext}`;
+
+                            const saveToPhotos = async () => {
+                              try {
+                                // Convert data URI to blob
+                                const res = await fetch(src);
+                                const blob = await res.blob();
+                                const file = new File([blob], filename, { type: mime });
+                                // Use Web Share API (iOS shows "Save Image" → saves to Photos)
+                                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                  await navigator.share({ files: [file], title: filename });
+                                } else {
+                                  // Fallback: regular download
+                                  const a = document.createElement("a");
+                                  a.href = src;
+                                  a.download = filename;
+                                  a.click();
+                                }
+                              } catch { /* user cancelled share — ignore */ }
+                            };
+
                             return (
-                              <div key={label} className="flex flex-col items-center gap-1">
+                              <div key={label} className="flex flex-col items-center gap-1.5">
+                                {/* Tap image → full screen */}
                                 <div className="w-32 h-20 rounded-xl overflow-hidden border border-white/10 bg-black/30 relative group cursor-pointer"
-                                  onClick={() => { const a = document.createElement("a"); a.href = src; a.download = `giftcard_${gc.id}_${label.toLowerCase()}.${ext}`; a.click(); }}>
+                                  onClick={() => setLightboxImg({ src, label, gcId: gc.id })}>
                                   <img src={src} alt={label} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity="0.3"; }} />
-                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
                                     </svg>
                                   </div>
                                 </div>
-                                <span className="text-white/40 text-[10px]">{label} · tap to save</span>
+                                <span className="text-white/30 text-[10px]">{label}</span>
+                                {/* Save to Photos button */}
+                                <button onClick={saveToPhotos}
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition-all active:scale-95">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                                  </svg>
+                                  Save
+                                </button>
                               </div>
                             );
                           })}
@@ -3329,6 +3361,69 @@ export default function Admin() {
         * { -webkit-tap-highlight-color: transparent; }
         textarea { field-sizing: content; }
       `}</style>
+
+      {/* ── Lightbox / Full-screen image viewer ── */}
+      {lightboxImg && (
+        <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.95)", backdropFilter: "blur(12px)" }}
+          onClick={() => setLightboxImg(null)}>
+
+          {/* Top bar */}
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 py-4"
+            style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)" }}
+            onClick={e => e.stopPropagation()}>
+            <span className="text-white font-bold text-sm tracking-wide">
+              Gift Card #{lightboxImg.gcId} — {lightboxImg.label}
+            </span>
+            <button onClick={() => setLightboxImg(null)}
+              className="w-9 h-9 rounded-full flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.1)" }}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Image */}
+          <img src={lightboxImg.src} alt={lightboxImg.label}
+            className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl"
+            style={{ border: "1px solid rgba(255,255,255,0.1)" }}
+            onClick={e => e.stopPropagation()} />
+
+          {/* Bottom bar — save button */}
+          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-4 px-5 py-6"
+            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)" }}
+            onClick={e => e.stopPropagation()}>
+            <button
+              onClick={async () => {
+                const mime = lightboxImg.src.startsWith("data:image/png") ? "image/png" : "image/jpeg";
+                const ext = mime === "image/png" ? "png" : "jpg";
+                const filename = `giftcard_${lightboxImg.gcId}_${lightboxImg.label.toLowerCase()}.${ext}`;
+                try {
+                  const res = await fetch(lightboxImg.src);
+                  const blob = await res.blob();
+                  const file = new File([blob], filename, { type: mime });
+                  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: filename });
+                  } else {
+                    const a = document.createElement("a");
+                    a.href = lightboxImg.src;
+                    a.download = filename;
+                    a.click();
+                  }
+                } catch { /* user cancelled */ }
+              }}
+              className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm text-black active:scale-95 transition-transform"
+              style={{ background: "linear-gradient(135deg,#c9a84c,#f0d080)" }}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              Save to Photos
+            </button>
+            <p className="text-white/30 text-xs">or tap outside to close</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
