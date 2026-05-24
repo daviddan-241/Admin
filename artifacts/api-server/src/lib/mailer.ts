@@ -222,6 +222,40 @@ export function emailAdminNewRequest(opts: { fanName: string; fanEmail: string; 
   };
 }
 
+export function emailAdminNewChat(opts: { fanName: string; fanEmail: string }) {
+  return {
+    subject: `💬 New Fan Chat — ${opts.fanName}`,
+    html: wrap(
+      h2("A new fan just started a chat! 💬") +
+      `<div style="background:#ffffff08;border-radius:12px;padding:16px;margin:0 0 16px;">` +
+      detail("Fan", opts.fanName) +
+      detail("Email", opts.fanEmail) +
+      `</div>` +
+      p("Reply from the admin portal Messages tab — the fan is waiting!") +
+      btn("Open Admin Messages", (process.env.PLATFORM_URL || "https://sophierain.replit.app") + "/admin")
+    ),
+  };
+}
+
+export function emailAdminFanMessage(opts: { fanName: string; fanEmail: string; message: string; paid: boolean; amount?: string }) {
+  return {
+    subject: `💬 ${opts.paid ? `💰 Paid Message` : `New Message`} — ${opts.fanName}`,
+    html: wrap(
+      h2(`${opts.paid ? "Paid message received! 💰" : "New message from a fan 💬"}`) +
+      `<div style="background:#ffffff08;border-radius:12px;padding:16px;margin:0 0 16px;">` +
+      detail("Fan", opts.fanName) +
+      detail("Email", opts.fanEmail) +
+      (opts.amount ? detail("Amount Paid", `$${opts.amount}`) : "") +
+      `</div>` +
+      `<div style="background:#ffffff08;border-radius:12px;padding:16px;margin:0 0 16px;border-left:3px solid #c9a84c;">` +
+      `<p style="color:#f0d080;font-size:13px;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.05em;">Message</p>` +
+      `<p style="color:#ffffffcc;font-size:15px;margin:0;">${opts.message.slice(0, 300)}${opts.message.length > 300 ? "…" : ""}</p>` +
+      `</div>` +
+      btn("Reply in Admin", (process.env.PLATFORM_URL || "https://sophierain.replit.app") + "/admin")
+    ),
+  };
+}
+
 export function emailAdminNewTip(opts: { fanName: string; fanEmail: string; amount: string; message?: string }) {
   return {
     subject: `💝 New Tip — ${opts.fanName} ($${opts.amount})`,

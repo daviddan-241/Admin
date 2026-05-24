@@ -3,6 +3,8 @@ import { eq, desc, gt, and } from "drizzle-orm";
 import { db, chatSessionsTable, chatMessagesTable } from "@workspace/db";
 import { adminAuth } from "../middleware/admin";
 import { activityEmitter } from "../emitter";
+import { sendMail, emailAdminNewChat, emailAdminFanMessage } from "../lib/mailer";
+import { platformConfig } from "./settings";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -55,6 +57,13 @@ router.post("/chat/start", async (req, res): Promise<void> => {
     fanName: name,
     fanAvatarUrl: avatarUrl ?? null,
   }).returning();
+
+  const adminEmail = (platformConfig as any).adminEmail;
+  if (adminEmail) {
+    const tpl = emailAdminNewChat({ fanName: name, fanEmail: email });
+    sendMail({ to: adminEmail, subject: tpl.subject, html: tpl.html }).catch(() => {});
+  }
+
   res.status(201).json({ session: serializeSession(session), messages: [], freeLimit: FREE_LIMIT });
 });
 
@@ -145,6 +154,18 @@ router.post("/chat/:token/send", async (req, res): Promise<void> => {
     freeUsed: isFree ? session.freeUsed + 1 : session.freeUsed,
     lastMessageAt: new Date(),
   }).where(eq(chatSessionsTable.id, session.id));
+
+  const adminEmail = (platformConfig as any).adminEmail;
+  if (adminEmail) {
+    const tpl = emailAdminFanMessage({
+      fanName: session.fanName,
+      fanEmail: session.fanEmail,
+      message: message.trim(),
+      paid: !isFree && paid > 0,
+      amount: !isFree && paid > 0 ? String(paid) : undefined,
+    });
+    sendMail({ to: adminEmail, subject: tpl.subject, html: tpl.html }).catch(() => {});
+  }
 
   if (!isFree && paid > 0) {
     activityEmitter.emit("activity", {

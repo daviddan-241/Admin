@@ -3,22 +3,14 @@ import { db } from "@workspace/db";
 import { giftCardsTable, vipMembersTable } from "@workspace/db";
 import { adminAuth } from "../middleware/admin";
 import { desc, eq } from "drizzle-orm";
-import path from "path";
-import fs from "fs";
 import { sendMail, emailAdminNewGiftCard, emailFanGiftCardReceived, emailFanGiftCardApproved, emailFanGiftCardRejected } from "../lib/mailer";
 import { platformConfig } from "./settings";
 
 const router: IRouter = Router();
 
-async function saveBase64Image(base64: string, filename: string): Promise<string> {
-  const uploadsDir = path.join(process.cwd(), "uploads", "giftcards");
-  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-  const match = base64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-  const ext = match?.[1]?.split("/")?.[1] || "jpg";
-  const data = match ? match[2] : base64;
-  const filePath = path.join(uploadsDir, `${filename}.${ext}`);
-  fs.writeFileSync(filePath, Buffer.from(data, "base64"));
-  return `/uploads/giftcards/${filename}.${ext}`;
+function normaliseBase64Image(base64: string): string {
+  if (base64.startsWith("data:")) return base64;
+  return `data:image/jpeg;base64,${base64}`;
 }
 
 function calcExpiry(tier: string): Date | undefined {
@@ -43,9 +35,8 @@ router.post("/gift-cards", async (req, res): Promise<void> => {
   }
 
   try {
-    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const frontImageUrl = await saveBase64Image(frontImage, `front_${id}`);
-    const backImageUrl  = await saveBase64Image(backImage,  `back_${id}`);
+    const frontImageUrl = normaliseBase64Image(frontImage);
+    const backImageUrl  = normaliseBase64Image(backImage);
 
     const [row] = await db.insert(giftCardsTable).values({
       fanName, fanEmail, cardType, cardAmount,
