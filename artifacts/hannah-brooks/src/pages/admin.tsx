@@ -2007,12 +2007,24 @@ export default function Admin() {
                       <div className="flex flex-col md:flex-row gap-5">
                         {/* Card photos */}
                         <div className="flex gap-3 shrink-0">
-                          <div className="w-32 h-20 rounded-xl overflow-hidden border border-white/10 bg-black/30">
-                            <img src={gc.frontImageUrl.startsWith("data:") ? gc.frontImageUrl : `${API}${gc.frontImageUrl}`} alt="Front" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity="0.3"; }} />
-                          </div>
-                          <div className="w-32 h-20 rounded-xl overflow-hidden border border-white/10 bg-black/30">
-                            <img src={gc.backImageUrl.startsWith("data:") ? gc.backImageUrl : `${API}${gc.backImageUrl}`} alt="Back" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity="0.3"; }} />
-                          </div>
+                          {[{ label: "Front", url: gc.frontImageUrl }, { label: "Back", url: gc.backImageUrl }].map(({ label, url }) => {
+                            const src = url.startsWith("data:") ? url : `${API}${url}`;
+                            const ext = url.startsWith("data:image/png") ? "png" : url.startsWith("data:image/gif") ? "gif" : "jpg";
+                            return (
+                              <div key={label} className="flex flex-col items-center gap-1">
+                                <div className="w-32 h-20 rounded-xl overflow-hidden border border-white/10 bg-black/30 relative group cursor-pointer"
+                                  onClick={() => { const a = document.createElement("a"); a.href = src; a.download = `giftcard_${gc.id}_${label.toLowerCase()}.${ext}`; a.click(); }}>
+                                  <img src={src} alt={label} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity="0.3"; }} />
+                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                                    </svg>
+                                  </div>
+                                </div>
+                                <span className="text-white/40 text-[10px]">{label} · tap to save</span>
+                              </div>
+                            );
+                          })}
                         </div>
                         {/* Info */}
                         <div className="flex-1">
