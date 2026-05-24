@@ -2008,10 +2008,10 @@ export default function Admin() {
                         {/* Card photos */}
                         <div className="flex gap-3 shrink-0">
                           <div className="w-32 h-20 rounded-xl overflow-hidden border border-white/10 bg-black/30">
-                            <img src={`http://localhost:8080${gc.frontImageUrl}`} alt="Front" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity="0.3"; }} />
+                            <img src={gc.frontImageUrl.startsWith("data:") ? gc.frontImageUrl : `${API}${gc.frontImageUrl}`} alt="Front" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity="0.3"; }} />
                           </div>
                           <div className="w-32 h-20 rounded-xl overflow-hidden border border-white/10 bg-black/30">
-                            <img src={`http://localhost:8080${gc.backImageUrl}`} alt="Back" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity="0.3"; }} />
+                            <img src={gc.backImageUrl.startsWith("data:") ? gc.backImageUrl : `${API}${gc.backImageUrl}`} alt="Back" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.opacity="0.3"; }} />
                           </div>
                         </div>
                         {/* Info */}
